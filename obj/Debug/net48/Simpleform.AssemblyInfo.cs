@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Simpleform")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f76c4b40edf4baff3a28438e7ca3ab0872e1b0fa")]
 [assembly: System.Reflection.AssemblyProductAttribute("Simpleform")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Simpleform")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,6 +1,7 @@
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using Simpleform.buidhouse.services;
 using Simpleform.drawWallRefactor;
 
 namespace Simpleform.buidhouse.commands;
@@ -20,6 +21,14 @@ public class BuildHouseCommand :BaseClass
                 message = "Bạn đã hủy lệnh chọn điểm";
                 return Result.Cancelled;
             }
+            //Draw grid
+            using Transaction t = new Transaction(doc,"BuildHouse");
+            {
+                t.Start();
+                GridService gridService = new GridService(centerPoint, doc);
+                gridService.createGridLines();
+                t.Commit();
+            }
             
             
             return Result.Succeeded;
@@ -28,7 +37,7 @@ public class BuildHouseCommand :BaseClass
         catch (Exception e)
         {
             Console.WriteLine(e);
-            throw;
+            throw(e);
         }
     
     }

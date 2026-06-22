@@ -7,3 +7,4 @@ D:\revit\RevitAPI\obj\Debug\net48\Simpleform.AssemblyInfo.cs
 D:\revit\RevitAPI\obj\Debug\net48\Simpleform.csproj.CoreCompileInputs.cache
 D:\revit\RevitAPI\obj\Debug\net48\Simpleform.dll
 D:\revit\RevitAPI\obj\Debug\net48\Simpleform.pdb
+D:\revit\RevitAPI\obj\Debug\net48\Simpleform.sourcelink.json
