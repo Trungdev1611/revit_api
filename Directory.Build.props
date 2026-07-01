@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <!-- Mặc định: Revit 2023 (máy nhà). Máy khác override RevitVersion trong Directory.Build.user.props -->
+    <RevitVersion Condition="'$(RevitVersion)' == ''">2023</RevitVersion>
+  </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.user.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.user.props')" />
+</Project>

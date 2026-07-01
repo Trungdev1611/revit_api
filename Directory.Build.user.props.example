@@ -1,0 +1,7 @@
+<!-- Đổi tên file này thành Directory.Build.user.props (file đó không commit lên git).
+     Máy có Revit 2027, chỉ code không test: -->
+<Project>
+  <PropertyGroup>
+    <RevitVersion>2027</RevitVersion>
+  </PropertyGroup>
+</Project>
