@@ -1,6 +1,7 @@
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using Simpleform.buidhouse.models;
 using Simpleform.buidhouse.services;
 using Simpleform.drawWallRefactor;
 
@@ -21,15 +22,38 @@ public class BuildHouseCommand :BaseClass
                 message = "Bạn đã hủy lệnh chọn điểm";
                 return Result.Cancelled;
             }
-            //Draw grid
+         
             using Transaction t = new Transaction(doc,"BuildHouse");
             {
                 t.Start();
+
+                //Draw grid
                 GridService gridService = new GridService(centerPoint, doc);
-                gridService.createGridLines();
+                CurveLoop curveLoop = gridService.createGridLines();
+
+                //Create level
+                List<LevelConfig> levelConfigs = new List<LevelConfig> {
+                    new LevelConfig("Level 1", 0),
+                    new LevelConfig("Level 2", 3600),
+                    new LevelConfig("Level 3", 6900),
+                };
+                LevelService.CreateOrUpdateLevel(doc, levelConfigs);
+
+                //Create blinding concrete (bê tông lót)
+                BlindingConcreteConfig blindingConcreteConfig = new BlindingConcreteConfig();
+                FloorService floorService = new FloorService(doc);
+                ElementId floorTypeId = floorService.getFloorTypeIdOrCreateNew(blindingConcreteConfig);
+                if(floorTypeId == null) {
+                    message = "Không tìm thấy kiểu sàn nào trong dự án!";
+                    return Result.Failed;
+                }
+
+                Level level1 = doc.GetFirstItemOrCondition<Level>(Level => Level.Name == "Level 1");
+                ElementId levelId = level1.Id;
+                //Create floor
+                floorService.createBlindingConcrete(new List<CurveLoop> { curveLoop }, blindingConcreteConfig, floorTypeId, levelId);
                 t.Commit();
             }
-            
             
             return Result.Succeeded;
         }

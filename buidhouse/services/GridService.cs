@@ -19,7 +19,7 @@ public class GridService
         _doc = doc;
     }
 
-    public void createGridLines()
+    public CurveLoop createGridLines()
     {
         // Xác định các mốc tọa độ của 4 cạnh (Trái, Phải, Dưới, Trên)
         double left   = _center.X - halfW;
@@ -28,19 +28,26 @@ public class GridService
         double top    = _center.Y + halfL;
 
         // Vẽ 2 Trục Dọc (Chạy từ Dưới lên Trên, có cộng thêm đoạn nhô ra 'ext')
-        createGrid(new XYZ(left, bottom - ext, _center.Z),  new XYZ(left, top + ext, _center.Z),  "1");
-        createGrid(new XYZ(right, bottom - ext, _center.Z), new XYZ(right, top + ext, _center.Z), "2");
+        Line line1 = createGrid(new XYZ(left, bottom - ext, _center.Z),  new XYZ(left, top + ext, _center.Z),  "1");
+        Line line2 = createGrid(new XYZ(right, bottom - ext, _center.Z), new XYZ(right, top + ext, _center.Z), "2");
 
         // Vẽ 2 Trục Ngang (Chạy từ Trái sang Phải, có cộng thêm đoạn nhô ra 'ext')
-        createGrid(new XYZ(left - ext, bottom, _center.Z),  new XYZ(right + ext, bottom, _center.Z),  "A");
-        createGrid(new XYZ(left - ext, top, _center.Z),     new XYZ(right + ext, top, _center.Z),     "B");
+        Line line3 = createGrid(new XYZ(left - ext, bottom, _center.Z),  new XYZ(right + ext, bottom, _center.Z),  "A");
+        Line line4 = createGrid(new XYZ(left - ext, top, _center.Z),     new XYZ(right + ext, top, _center.Z),     "B");
+        CurveLoop profile = new CurveLoop();
+        profile.Append(line1);
+        profile.Append(line2);
+        profile.Append(line3);
+        profile.Append(line4);
+        return profile;
     }
 
     // Hàm phụ trợ nhỏ gọn để vừa tạo vừa đặt tên luôn, đỡ lặp code
-    private void createGrid(XYZ start, XYZ end, string name)
+    private Line createGrid(XYZ start, XYZ end, string name)
     {
         Line line = Line.CreateBound(start, end);
         Grid grid = Grid.Create(_doc, line);
         grid.Name = name;
+        return line;
     }
 }
