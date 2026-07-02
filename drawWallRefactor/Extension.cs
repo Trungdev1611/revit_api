@@ -47,8 +47,8 @@ public static class Extension
 
     public static T? GetFirstItemOrCondition<T>(
         this Document doc,
-        Func<T, bool> condition = null, 
-        BuiltInCategory? category = null, 
+        Func<T, bool>? condition = null,
+        BuiltInCategory? category = null,
         bool isType = false) where T : Element
     {
         var collector = new FilteredElementCollector(doc);

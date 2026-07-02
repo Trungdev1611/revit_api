@@ -16,38 +16,48 @@ public class FloorService
     }
 
     public ElementId getFloorTypeIdOrCreateNew(IFloor floorConfig) {
+        const double thicknessTolerance = 1e-6;
 
-        Func<FloorType, bool> conditionName = floorType => 
-        floorType.Name == floorConfig.FloortypeName; //check name
+        bool matchesName(FloorType floorType) =>
+            floorType.Name == floorConfig.FloortypeName;
 
-        Func<FloorType, bool> conditionThickness = floorType => 
-        floorType.GetCompoundStructure().GetWidth() == floorConfig.Thickness; //check thickness
-        
-        //check if floor type with name and thickness exists
-        var existingFloorTypes = _doc.GetFirstItemOrCondition<FloorType>(floorType => conditionName(floorType) && conditionThickness(floorType));
-        if(existingFloorTypes != null) {
-            return existingFloorTypes.Id;
+        bool matchesThickness(FloorType floorType) =>
+            Math.Abs(floorType.GetCompoundStructure().GetWidth() - floorConfig.Thickness) < thicknessTolerance;
+
+        var existingFloorType = _doc.GetFirstItemOrCondition<FloorType>(
+            floorType => matchesName(floorType) && matchesThickness(floorType),
+            isType: true);
+        if (existingFloorType != null) {
+            return existingFloorType.Id;
         }
 
-        //check if floor type with name exists or get first item
-        var exitsfloorTypeWithName = _doc.GetFirstItemOrCondition<FloorType>(conditionName);
-        if(exitsfloorTypeWithName != null) {
-          FloorType newFloorTypeDuplicate =  exitsfloorTypeWithName.Duplicate($"{floorConfig.FloortypeName}-new") as FloorType;
-            //create new structure with thickness - 1 layer
-            var newStructure = CompoundStructure
-            .CreateSingleLayerCompoundStructure( 
+        var sourceFloorType = _doc.GetFirstItemOrCondition<FloorType>(matchesName, isType: true)
+            ?? _doc.GetFirstItemOrCondition<FloorType>(isType: true);
+
+        if (sourceFloorType == null) {
+            TaskDialog.Show("Thong bao", "Không tìm thấy kiểu sàn nào trong dự án!");
+            return null;
+        }
+
+        if (matchesThickness(sourceFloorType)) {
+            return sourceFloorType.Id;
+        }
+
+        FloorType newFloorType = sourceFloorType.Duplicate($"{floorConfig.FloortypeName}-new") as FloorType;
+        ElementId materialId = sourceFloorType.GetCompoundStructure().GetMaterialId(0);
+
+        var layers = new List<CompoundStructureLayer>
+        {
+            new CompoundStructureLayer(
+                floorConfig.Thickness,
                 MaterialFunctionAssignment.Structure,
-                 floorConfig.Thickness,
-                  ElementId.InvalidElementId);
+                materialId)
+        };
 
-            newFloorTypeDuplicate.SetCompoundStructure(newStructure);
-            return newFloorTypeDuplicate.Id;
-   
-        }
-        TaskDialog.Show("Thong bao", "Không tìm thấy kiểu sàn nào trong dự án!");
-
-        return null;
-
+        // Floor chỉ nhận simple compound structure, không dùng CreateSingleLayerCompoundStructure
+        CompoundStructure newStructure = CompoundStructure.CreateSimpleCompoundStructure(layers);
+        newFloorType.SetCompoundStructure(newStructure);
+        return newFloorType.Id;
     }
 
     public Floor createBlindingConcrete(IList<CurveLoop> curveLoops, BlindingConcreteConfig blindingConcreteConfig, ElementId floorTypeId, ElementId levelId) {

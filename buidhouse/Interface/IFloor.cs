@@ -4,6 +4,6 @@ public interface IFloor
 {
     string FloortypeName { get; }
     double Thickness { get; }
-    double OffsetFromFoundationLevel { get; }
+    double EdgeExtensionMm { get; }
     string LevelName { get; }
 }

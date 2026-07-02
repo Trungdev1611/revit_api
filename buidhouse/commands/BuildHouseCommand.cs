@@ -27,9 +27,8 @@ public class BuildHouseCommand :BaseClass
             {
                 t.Start();
 
-                //Draw grid
                 GridService gridService = new GridService(centerPoint, doc);
-                CurveLoop curveLoop = gridService.createGridLines();
+                gridService.createGrids();
 
                 //Create level
                 List<LevelConfig> levelConfigs = new List<LevelConfig> {
@@ -50,8 +49,8 @@ public class BuildHouseCommand :BaseClass
 
                 Level level1 = doc.GetFirstItemOrCondition<Level>(Level => Level.Name == "Level 1");
                 ElementId levelId = level1.Id;
-                //Create floor
-                floorService.createBlindingConcrete(new List<CurveLoop> { curveLoop }, blindingConcreteConfig, floorTypeId, levelId);
+                CurveLoop footingLoop = gridService.createFootprintLoop(blindingConcreteConfig.EdgeExtensionMm);
+                floorService.createBlindingConcrete(new List<CurveLoop> { footingLoop }, blindingConcreteConfig, floorTypeId, levelId);
                 t.Commit();
             }
             
