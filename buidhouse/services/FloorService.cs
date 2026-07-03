@@ -31,6 +31,14 @@ public class FloorService
             return existingFloorType.Id;
         }
 
+        string duplicateName = $"{floorConfig.FloortypeName}-new";
+        var existingDuplicate = _doc.GetFirstItemOrCondition<FloorType>(
+            floorType => floorType.Name == duplicateName,
+            isType: true);
+        if (existingDuplicate != null && matchesThickness(existingDuplicate)) {
+            return existingDuplicate.Id;
+        }
+
         var sourceFloorType = _doc.GetFirstItemOrCondition<FloorType>(matchesName, isType: true)
             ?? _doc.GetFirstItemOrCondition<FloorType>(isType: true);
 
@@ -43,21 +51,38 @@ public class FloorService
             return sourceFloorType.Id;
         }
 
-        FloorType newFloorType = sourceFloorType.Duplicate($"{floorConfig.FloortypeName}-new") as FloorType;
-        ElementId materialId = sourceFloorType.GetCompoundStructure().GetMaterialId(0);
+        FloorType newFloorType = existingDuplicate
+            ?? sourceFloorType.Duplicate(duplicateName) as FloorType;
 
-        var layers = new List<CompoundStructureLayer>
-        {
-            new CompoundStructureLayer(
-                floorConfig.Thickness,
-                MaterialFunctionAssignment.Structure,
-                materialId)
-        };
-
-        // Floor chỉ nhận simple compound structure, không dùng CreateSingleLayerCompoundStructure
-        CompoundStructure newStructure = CompoundStructure.CreateSimpleCompoundStructure(layers);
-        newFloorType.SetCompoundStructure(newStructure);
+        CompoundStructure compound = newFloorType.GetCompoundStructure();
+        setTotalThickness(compound, floorConfig.Thickness);
+        newFloorType.SetCompoundStructure(compound);
         return newFloorType.Id;
+    }
+
+    private static void setTotalThickness(CompoundStructure compound, double targetThickness) {
+        if (compound.LayerCount == 1) {
+            compound.SetLayerWidth(0, targetThickness);
+            return;
+        }
+
+        IList<CompoundStructureLayer> layers = compound.GetLayers();
+        int structureLayerIndex = 0;
+        for (int i = 0; i < layers.Count; i++) {
+            if (layers[i].Function == MaterialFunctionAssignment.Structure) {
+                structureLayerIndex = i;
+                break;
+            }
+        }
+
+        double otherLayersWidth = 0;
+        for (int i = 0; i < compound.LayerCount; i++) {
+            if (i != structureLayerIndex) {
+                otherLayersWidth += compound.GetLayerWidth(i);
+            }
+        }
+
+        compound.SetLayerWidth(structureLayerIndex, targetThickness - otherLayersWidth);
     }
 
     public Floor createBlindingConcrete(IList<CurveLoop> curveLoops, BlindingConcreteConfig blindingConcreteConfig, ElementId floorTypeId, ElementId levelId) {
