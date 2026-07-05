@@ -1,3 +1,4 @@
+
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 
@@ -5,68 +6,81 @@ namespace Simpleform.drawWallRefactor;
 
 public static class Extension
 {
+    // 1. Lấy danh sách các kiểu tường có sẵn trong file
     public static List<WallType> getListTypeWallBuiltIn(this Document doc)
     {
         return new FilteredElementCollector(doc)
             .OfCategory(BuiltInCategory.OST_Walls)
-            .WhereElementIsElementType() // <--- Lấy các Type ẩn trong file
+            .WhereElementIsElementType() 
             .Cast<WallType>()
             .ToList();
     }
     
-    public static ElementId getFirstLevelInView (this Document doc) {
-        return new FilteredElementCollector (doc)
-            .OfClass(typeof(Level)).FirstElementId();
+    // 2. Lấy ID của Level đầu tiên tìm thấy (Đã sửa để chống crash)
+    public static ElementId? getFirstLevelInView(this Document doc) 
+    {
+        Element level = new FilteredElementCollector(doc)
+            .OfClass(typeof(Level))
+            .FirstOrDefault();
+            
+        return level?.Id; // Trả về null nếu dự án lỗi không có level nào
     }
 
+    // 3. Lấy kiểu chữ mặc định của dự án
     public static ElementId getTextDefault(this Document doc)
     {
         ElementId defaultTextTypeId = doc.GetDefaultElementTypeId(ElementTypeGroup.TextNoteType);
-            
-        TextNoteType defaultType = doc.GetElement(defaultTextTypeId) as TextNoteType;
+        TextNoteType? defaultType = doc.GetElement(defaultTextTypeId) as TextNoteType;
 
         if (defaultType != null)
         {
-            // 3. Lấy tên của nó ra dạng chuỗi (String)
             string defaultTextName = defaultType.Name;
-
-            // 4. Bắn cái bảng thông báo lên màn hình Revit để xem tên
             TaskDialog.Show("Tên Kiểu Chữ Mặc Định", $"Kiểu chữ mặc định hiện tại là: {defaultTextName}");
             return defaultTextTypeId;
         }
         throw new InvalidOperationException("Không tìm thấy kiểu chữ mặc định nào trong dự án!");
     }
     
-     public static WallType GetWallTypeDefault(this Document doc)
+    // 4. Lấy kiểu tường cơ bản (Basic Wall) đầu tiên mặc định
+    public static WallType? GetWallTypeDefault(this Document doc)
     {
-       return  new FilteredElementCollector(doc)
+       return new FilteredElementCollector(doc)
             .OfClass(typeof(WallType))
             .Cast<WallType>()
             .FirstOrDefault(w => w.Kind == WallKind.Basic);
     }
 
+    // 5. Hàm lọc Generic "Thần thánh" (Đã đảo OfClass lên đầu để tăng tốc độ lọc)
     public static T? GetFirstItemOrCondition<T>(
         this Document doc,
         Func<T, bool>? condition = null,
         BuiltInCategory? category = null,
         bool isType = false) where T : Element
     {
-        var collector = new FilteredElementCollector(doc);
-        // Lọc theo Category nếu có
-        if (category.HasValue) collector.OfCategory(category.Value);
+        // Khởi tạo collector và lọc Class ngay lập tức ở tầng gốc C++ để đạt tốc độ cao nhất
+        var collector = new FilteredElementCollector(doc).OfClass(typeof(T));
         
-        // Lọc theo loại (Type) hoặc thực thể (Instance)
+        // Lọc theo Category nếu được truyền vào
+        if (category.HasValue) 
+        {
+            collector.OfCategory(category.Value);
+        }
+        
+        // Phân biệt Type (FamilySymbol, WallType...) hay Instance (Cột, Tường cụ thể)
         if (isType)
+        {
             collector.WhereElementIsElementType();
+        }
         else
+        {
             collector.WhereElementIsNotElementType();
+        }
         
-        condition = condition ?? (x => true);
-        // Lọc theo Class và kiểm tra điều kiện
+        // Xử lý điều kiện Lambda delegate của bạn một cách mượt mà
+        condition ??= (x => true);
+        
         return collector
-            .OfClass(typeof(T))
             .Cast<T>()
             .FirstOrDefault(condition);
-
     }
 }

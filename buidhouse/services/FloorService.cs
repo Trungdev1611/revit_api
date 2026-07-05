@@ -90,4 +90,13 @@ public class FloorService
         return newFloor;
     }
 
+    public bool setOffsetFromInInitialPosition(Floor floorTarget, double valueOffset) {
+        if(floorTarget == null) {
+            return false;
+        }
+        Parameter offsetParam = floorTarget.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM);
+        return offsetParam.Set(valueOffset);
+     
+    }
+
 }

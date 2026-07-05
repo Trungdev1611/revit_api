@@ -50,7 +50,14 @@ public class BuildHouseCommand :BaseClass
                 Level level1 = doc.GetFirstItemOrCondition<Level>(Level => Level.Name == "Level 1");
                 ElementId levelId = level1.Id;
                 CurveLoop footingLoop = gridService.createFootprintLoop(blindingConcreteConfig.EdgeExtensionMm);
-                floorService.createBlindingConcrete(new List<CurveLoop> { footingLoop }, blindingConcreteConfig, floorTypeId, levelId);
+                Floor floor = floorService.createBlindingConcrete(new List<CurveLoop> { footingLoop }, blindingConcreteConfig, floorTypeId, levelId);
+                
+                //set offset from level1 -150mm 
+                bool isSuccessOffset = floorService.setOffsetFromInInitialPosition(floor, blindingConcreteConfig.offsetFromLevelTarget);
+                if(!isSuccessOffset) {
+                    message = "Không thể set offset từ level1 -150mm!";
+                    return Result.Failed;
+                }
                 t.Commit();
             }
             
