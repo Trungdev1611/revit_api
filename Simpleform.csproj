@@ -16,6 +16,30 @@
         <HintPath>C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPIUI.dll</HintPath>
         <Private>False</Private>
       </Reference>
+
+      <None Update="buidhouse\families\**\*">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
+
+    <Target Name="GomFileThuongMai" AfterTargets="Build">
+        <MakeDir Directories="$(TargetDir)buildhouse_Files" />
+        <MakeDir Directories="$(TargetDir)buildhouse_Files\families" />
+
+        <Move SourceFiles="$(TargetPath)" DestinationFolder="$(TargetDir)buildhouse_Files" />
+
+        <ItemGroup>
+            <FamilyFiles Include="$(TargetDir)buidhouse\families\**\*.*" />
+        </ItemGroup>
+
+        <Move
+            SourceFiles="@(FamilyFiles)"
+            DestinationFolder="$(TargetDir)buildhouse_Files\families\%(RecursiveDir)"
+            Condition="'@(FamilyFiles)' != ''" />
+
+        <Copy SourceFiles="$(ProjectDir)buidhouse\buildhouse.addin" DestinationFolder="$(TargetDir)" />
+
+        <RemoveDir Directories="$(TargetDir)buidhouse" Condition="Exists('$(TargetDir)buidhouse')" />
+    </Target>
 
 </Project>

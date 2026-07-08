@@ -1,3 +1,4 @@
+using System.Reflection;
 using Autodesk.Revit.DB;
 
 namespace Simpleform.buidhouse.utils;
@@ -25,7 +26,13 @@ public static class RevitUtil
          return loop;
      }
 
-     public static string pathFamily = "C:\\ProgramData\\Autodesk\\RVT 2023\\Libraries\\English\\South Asia";
+     public static string getAddinDirectory()
+     {
+         return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+     }
 
-
+     public static string resolveFamilyPath(string relativePath)
+     {
+         return Path.GetFullPath(Path.Combine(getAddinDirectory(), relativePath));
+     }
 }
