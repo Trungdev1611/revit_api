@@ -37,8 +37,8 @@ public class Class1: IExternalCommand
             infodetail += $"Wallname: {wallname} - Id: ({idWall})";
         }
         // 4. Hiển thị tổng số lượng và chi tiết từng loại lên màn hình
-        int tongSoLuong = categoryWall.GetElementCount();;
-        
+        int tongSoLuong = categoryWall.GetElementCount();
+        TaskDialog.Show("Thông báo", $"Tổng số lượng tường: {tongSoLuong}");
         return Result.Succeeded;
     }
 }

@@ -1,0 +1,5 @@
+{
+  "dotnet.defaultSolution": "RevitAPI.sln",
+  "omnisharp.enableMsBuildLoadProjectOnDemand": false,
+  "omnisharp.useModernNet": false
+}

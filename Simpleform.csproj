@@ -9,11 +9,11 @@
 
     <ItemGroup>
       <Reference Include="RevitAPI">
-        <HintPath>C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPI.dll</HintPath>
+        <HintPath>$(RevitApiDll)</HintPath>
         <Private>False</Private>
       </Reference>
       <Reference Include="RevitAPIUI">
-        <HintPath>C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPIUI.dll</HintPath>
+        <HintPath>$(RevitApiUiDll)</HintPath>
         <Private>False</Private>
       </Reference>
 
@@ -21,7 +21,28 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
+    
+    <Target Name="GomFileThuongMai" AfterTargets="Build">
+        <MakeDir Directories="$(TargetDir)buildhouse_Files" />
+        <MakeDir Directories="$(TargetDir)buildhouse_Files\families" />
 
+        <Move SourceFiles="$(TargetPath)" DestinationFolder="$(TargetDir)buildhouse_Files" />
+
+        <ItemGroup>
+            <FamilyFiles Include="$(TargetDir)buidhouse\families\**\*.*" />
+        </ItemGroup>
+
+        <Move
+            SourceFiles="@(FamilyFiles)"
+            DestinationFolder="$(TargetDir)buildhouse_Files\families\%(RecursiveDir)"
+            Condition="'@(FamilyFiles)' != ''" />
+
+        <Copy SourceFiles="$(ProjectDir)buidhouse\buildhouse.addin" DestinationFolder="$(TargetDir)" />
+
+        <RemoveDir Directories="$(TargetDir)buidhouse" Condition="Exists('$(TargetDir)buidhouse')" />
+    </Target>
+
+</Project>
     <Target Name="GomFileThuongMai" AfterTargets="Build">
         <MakeDir Directories="$(TargetDir)buildhouse_Files" />
         <MakeDir Directories="$(TargetDir)buildhouse_Files\families" />

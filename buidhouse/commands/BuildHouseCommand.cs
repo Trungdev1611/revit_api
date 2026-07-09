@@ -14,6 +14,8 @@ public class BuildHouseCommand :BaseClass
     {
         try
         {
+
+            //pick point
             TaskDialog.Show("Thông báo", "bạn hãy chọn một điểm tâm của ngôi nhà trên màn hình");
             XYZ centerPoint = base.uidoc.Selection.PickPoint();
             if (centerPoint == null)
@@ -22,6 +24,7 @@ public class BuildHouseCommand :BaseClass
                 return Result.Cancelled;
             }
          
+         //start transaction
             using Transaction t = new Transaction(doc,"BuildHouse");
             {
                 t.Start();
@@ -29,12 +32,15 @@ public class BuildHouseCommand :BaseClass
                 GridService gridService = new GridService(centerPoint, doc);
                 gridService.createGrids();
 
+            //create grid levels
                 List<LevelConfig> levelConfigs = new List<LevelConfig> {
                     new LevelConfig("Level 1", 0),
                     new LevelConfig("Level 2", 3600),
                     new LevelConfig("Level 3", 6900),
                 };
                 LevelService.CreateOrUpdateLevel(doc, levelConfigs);
+
+                //create blinding floor
 
                 BlindingConcreteConfig blindingConcreteConfig = new BlindingConcreteConfig();
                 FloorService floorService = new FloorService(doc);
@@ -44,16 +50,19 @@ public class BuildHouseCommand :BaseClass
                     return Result.Failed;
                 }
 
+                //get level1
                 Level level1 = doc.GetFirstItemOrCondition<Level>(Level => Level.Name == "Level 1");
                 ElementId levelId = level1.Id;
                 CurveLoop footingLoop = gridService.createFootprintLoop(blindingConcreteConfig.EdgeExtensionMm);
                 Floor floor = floorService.createBlindingConcrete(new List<CurveLoop> { footingLoop }, blindingConcreteConfig, floorTypeId, levelId);
                 
+                //offset floor to offsetFromLevelTarget = -150mm
                 bool isSuccessOffset = floorService.setOffsetFromInInitialPosition(floor, blindingConcreteConfig.offsetFromLevelTarget);
                 if(!isSuccessOffset) {
                     message = "Không thể set offset từ level1 -150mm!";
                     return Result.Failed;
                 }
+                
                 t.Commit();
             }
             

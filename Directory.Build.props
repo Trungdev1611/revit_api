@@ -6,4 +6,10 @@
 
   <Import Project="$(MSBuildThisFileDirectory)Directory.Build.user.props"
           Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.user.props')" />
+
+  <!-- Tính sau khi user.props override RevitVersion — IDE (OmniSharp) cần path cụ thể -->
+  <PropertyGroup>
+    <RevitApiDll>C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPI.dll</RevitApiDll>
+    <RevitApiUiDll>C:\Program Files\Autodesk\Revit $(RevitVersion)\RevitAPIUI.dll</RevitApiUiDll>
+  </PropertyGroup>
 </Project>
