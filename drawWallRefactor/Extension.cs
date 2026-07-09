@@ -6,7 +6,6 @@ namespace Simpleform.drawWallRefactor;
 
 public static class Extension
 {
-    // 1. Lấy danh sách các kiểu tường có sẵn trong file
     public static List<WallType> getListTypeWallBuiltIn(this Document doc)
     {
         return new FilteredElementCollector(doc)
@@ -16,17 +15,15 @@ public static class Extension
             .ToList();
     }
     
-    // 2. Lấy ID của Level đầu tiên tìm thấy (Đã sửa để chống crash)
     public static ElementId? getFirstLevelInView(this Document doc) 
     {
         Element level = new FilteredElementCollector(doc)
             .OfClass(typeof(Level))
             .FirstOrDefault();
             
-        return level?.Id; // Trả về null nếu dự án lỗi không có level nào
+        return level?.Id;
     }
 
-    // 3. Lấy kiểu chữ mặc định của dự án
     public static ElementId getTextDefault(this Document doc)
     {
         ElementId defaultTextTypeId = doc.GetDefaultElementTypeId(ElementTypeGroup.TextNoteType);
@@ -41,7 +38,6 @@ public static class Extension
         throw new InvalidOperationException("Không tìm thấy kiểu chữ mặc định nào trong dự án!");
     }
     
-    // 4. Lấy kiểu tường cơ bản (Basic Wall) đầu tiên mặc định
     public static WallType? GetWallTypeDefault(this Document doc)
     {
        return new FilteredElementCollector(doc)
@@ -50,23 +46,19 @@ public static class Extension
             .FirstOrDefault(w => w.Kind == WallKind.Basic);
     }
 
-    // 5. Hàm lọc Generic "Thần thánh" (Đã đảo OfClass lên đầu để tăng tốc độ lọc)
     public static T? GetFirstItemOrCondition<T>(
         this Document doc,
         Func<T, bool>? condition = null,
         BuiltInCategory? category = null,
         bool isType = false) where T : Element
     {
-        // Khởi tạo collector và lọc Class ngay lập tức ở tầng gốc C++ để đạt tốc độ cao nhất
         var collector = new FilteredElementCollector(doc).OfClass(typeof(T));
         
-        // Lọc theo Category nếu được truyền vào
         if (category.HasValue) 
         {
             collector.OfCategory(category.Value);
         }
         
-        // Phân biệt Type (FamilySymbol, WallType...) hay Instance (Cột, Tường cụ thể)
         if (isType)
         {
             collector.WhereElementIsElementType();
@@ -76,7 +68,6 @@ public static class Extension
             collector.WhereElementIsNotElementType();
         }
         
-        // Xử lý điều kiện Lambda delegate của bạn một cách mượt mà
         condition ??= (x => true);
         
         return collector

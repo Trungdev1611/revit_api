@@ -7,7 +7,6 @@ using Simpleform.drawWallRefactor;
 
 namespace Simpleform.buidhouse.commands;
 
-//nơi tạo commands
 [Transaction(TransactionMode.Manual)]
 public class BuildHouseCommand :BaseClass
 {
@@ -30,7 +29,6 @@ public class BuildHouseCommand :BaseClass
                 GridService gridService = new GridService(centerPoint, doc);
                 gridService.createGrids();
 
-                //Create level
                 List<LevelConfig> levelConfigs = new List<LevelConfig> {
                     new LevelConfig("Level 1", 0),
                     new LevelConfig("Level 2", 3600),
@@ -38,7 +36,6 @@ public class BuildHouseCommand :BaseClass
                 };
                 LevelService.CreateOrUpdateLevel(doc, levelConfigs);
 
-                //Create blinding concrete (bê tông lót)
                 BlindingConcreteConfig blindingConcreteConfig = new BlindingConcreteConfig();
                 FloorService floorService = new FloorService(doc);
                 ElementId floorTypeId = floorService.getFloorTypeIdOrCreateNew(blindingConcreteConfig);
@@ -52,7 +49,6 @@ public class BuildHouseCommand :BaseClass
                 CurveLoop footingLoop = gridService.createFootprintLoop(blindingConcreteConfig.EdgeExtensionMm);
                 Floor floor = floorService.createBlindingConcrete(new List<CurveLoop> { footingLoop }, blindingConcreteConfig, floorTypeId, levelId);
                 
-                //set offset from level1 -150mm 
                 bool isSuccessOffset = floorService.setOffsetFromInInitialPosition(floor, blindingConcreteConfig.offsetFromLevelTarget);
                 if(!isSuccessOffset) {
                     message = "Không thể set offset từ level1 -150mm!";

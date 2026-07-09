@@ -5,9 +5,9 @@ using Autodesk.Revit.UI;
 namespace Simpleform.drawWallRefactor;
 
 [Transaction(TransactionMode.Manual)]
-public abstract class BaseClass :IExternalCommand //cannot use new keyword with abstract class
+public abstract class BaseClass :IExternalCommand
 {
-    protected UIApplication uiapp; //protected: just use in child class extends
+    protected UIApplication uiapp;
     protected UIDocument uidoc;
     protected Document doc;
     public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)

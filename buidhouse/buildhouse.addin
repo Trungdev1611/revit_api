@@ -1,29 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  File .addin = manifest để Revit biết load DLL nào và chạy class nào.
-  Sau build: copy cả thư mục bin\Release\net48\ (có buildhouse.addin + buildhouse_Files\) vào Addins,
-  hoặc copy 2 thứ đó vào %APPDATA%\Autodesk\Revit\Addins\2023\
--->
 <RevitAddIns>
   <AddIn Type="Command">
-
-    <!-- HUONG_DAN_1: Tên hiển thị của tool trong Revit Add-in Manager -->
     <Name>Build House Automation Tool</Name>
-
-    <!-- HUONG_DAN_2: Đường dẫn tương đối tới DLL (cùng thư mục với file .addin) -->
     <Assembly>buildhouse_Files\Simpleform.dll</Assembly>
-
-    <!-- HUONG_DAN_3: Namespace + tên class implement IExternalCommand -->
     <FullClassName>Simpleform.buidhouse.commands.BuildHouseCommand</FullClassName>
-
-    <!-- HUONG_DAN_4: GUID duy nhất, không trùng add-in khác -->
     <ClientId>a1b2c3d4-e5f6-7a8b-9c0d-112233445566</ClientId>
-
-    <!-- HUONG_DAN_5: Mã tác giả (tối đa 4 ký tự) -->
     <VendorId>DDEV</VendorId>
-
-    <!-- HUONG_DAN_6: Mô tả ngắn / thông tin liên hệ -->
     <VendorDescription>Automated House Builder by Dang</VendorDescription>
-
   </AddIn>
 </RevitAddIns>
