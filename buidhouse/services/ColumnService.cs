@@ -7,6 +7,10 @@ using Simpleform.drawWallRefactor;
 
 namespace Simpleform.buidhouse.services;
 
+/// <summary>
+/// Tạo cột kết cấu (Loadable Family).
+/// Luồng: tìm FamilySymbol → LoadFamily(.rfa) nếu cần → Duplicate type → NewFamilyInstance.
+/// </summary>
 public class ColumnService
 {
     public FamilyInstance CreateColumn(Document doc, ColumnConfig config, XYZ location)
@@ -42,6 +46,7 @@ public class ColumnService
         Func<Family, bool> isExistFamilyName = f => f.Name == columnConfig.FamilyName;
         Func<FamilySymbol, bool> isExistSymbolName = f => f.Name == symbolName;
 
+        // FamilySymbol là Type → isType: true
         FamilySymbol familySymbol = doc.GetFirstItemOrCondition<FamilySymbol>(
             f => isExistFamilyName(f.Family) && isExistSymbolName(f),
             isType: true
@@ -54,6 +59,7 @@ public class ColumnService
 
         Family structuralFamily = doc.GetFirstItemOrCondition<Family>(isExistFamilyName);
 
+        // Load .rfa từ thư mục cạnh DLL (buildhouse_Files/families/Columns/)
         if (structuralFamily == null && Constant.ColumnFamilyFiles.TryGetValue(colCategory, out string relativePath))
         {
             string familyPath = RevitUtil.resolveFamilyPath(relativePath);
@@ -70,7 +76,7 @@ public class ColumnService
             {
                 TaskDialog.Show("Error",
                     $"Không tìm thấy file family:\n{familyPath}\n\n" +
-                    "Hãy copy file .rfa vào buidhouse\\families\\Columns\\ rồi build lại.");
+                    "Copy file .rfa vào buidhouse\\families\\Columns\\ rồi build lại.");
                 return null;
             }
         }

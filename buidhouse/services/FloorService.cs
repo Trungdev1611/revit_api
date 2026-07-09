@@ -7,15 +7,25 @@ using Simpleform.drawWallRefactor;
 
 namespace Simpleform.buidhouse.services;
 
+/// <summary>
+/// Xử lý FloorType (System Family) và tạo Floor instance.
+/// FloorType là Element Type → filter phải dùng isType: true.
+/// </summary>
 public class FloorService
 {
     private readonly Document _doc;
-    
-    public FloorService(Document doc) {
+
+    public FloorService(Document doc)
+    {
         this._doc = doc;
     }
 
-    public ElementId getFloorTypeIdOrCreateNew(IFloor floorConfig) {
+    /// <summary>
+    /// Tìm FloorType khớp config; nếu chưa có đúng độ dày thì duplicate và chỉnh CompoundStructure.
+    /// Không dùng CreateSingleLayerCompoundStructure — gây lỗi EndCap trên FloorType.
+    /// </summary>
+    public ElementId getFloorTypeIdOrCreateNew(IFloor floorConfig)
+    {
         const double thicknessTolerance = 1e-6;
 
         bool matchesName(FloorType floorType) =>
@@ -27,7 +37,8 @@ public class FloorService
         var existingFloorType = _doc.GetFirstItemOrCondition<FloorType>(
             floorType => matchesName(floorType) && matchesThickness(floorType),
             isType: true);
-        if (existingFloorType != null) {
+        if (existingFloorType != null)
+        {
             return existingFloorType.Id;
         }
 
@@ -35,19 +46,22 @@ public class FloorService
         var existingDuplicate = _doc.GetFirstItemOrCondition<FloorType>(
             floorType => floorType.Name == duplicateName,
             isType: true);
-        if (existingDuplicate != null && matchesThickness(existingDuplicate)) {
+        if (existingDuplicate != null && matchesThickness(existingDuplicate))
+        {
             return existingDuplicate.Id;
         }
 
         var sourceFloorType = _doc.GetFirstItemOrCondition<FloorType>(matchesName, isType: true)
             ?? _doc.GetFirstItemOrCondition<FloorType>(isType: true);
 
-        if (sourceFloorType == null) {
+        if (sourceFloorType == null)
+        {
             TaskDialog.Show("Thong bao", "Không tìm thấy kiểu sàn nào trong dự án!");
             return null;
         }
 
-        if (matchesThickness(sourceFloorType)) {
+        if (matchesThickness(sourceFloorType))
+        {
             return sourceFloorType.Id;
         }
 
@@ -60,24 +74,33 @@ public class FloorService
         return newFloorType.Id;
     }
 
-    private static void setTotalThickness(CompoundStructure compound, double targetThickness) {
-        if (compound.LayerCount == 1) {
+    /// <summary>
+    /// 1 lớp: set trực tiếp. Nhiều lớp: giữ Finish, chỉnh lớp Structure để tổng = targetThickness.
+    /// </summary>
+    private static void setTotalThickness(CompoundStructure compound, double targetThickness)
+    {
+        if (compound.LayerCount == 1)
+        {
             compound.SetLayerWidth(0, targetThickness);
             return;
         }
 
         IList<CompoundStructureLayer> layers = compound.GetLayers();
         int structureLayerIndex = 0;
-        for (int i = 0; i < layers.Count; i++) {
-            if (layers[i].Function == MaterialFunctionAssignment.Structure) {
+        for (int i = 0; i < layers.Count; i++)
+        {
+            if (layers[i].Function == MaterialFunctionAssignment.Structure)
+            {
                 structureLayerIndex = i;
                 break;
             }
         }
 
         double otherLayersWidth = 0;
-        for (int i = 0; i < compound.LayerCount; i++) {
-            if (i != structureLayerIndex) {
+        for (int i = 0; i < compound.LayerCount; i++)
+        {
+            if (i != structureLayerIndex)
+            {
                 otherLayersWidth += compound.GetLayerWidth(i);
             }
         }
@@ -85,18 +108,23 @@ public class FloorService
         compound.SetLayerWidth(structureLayerIndex, targetThickness - otherLayersWidth);
     }
 
-    public Floor createBlindingConcrete(IList<CurveLoop> curveLoops, BlindingConcreteConfig blindingConcreteConfig, ElementId floorTypeId, ElementId levelId) {
-        Floor newFloor = Floor.Create(_doc, curveLoops, floorTypeId, levelId);
-        return newFloor;
+    public Floor createBlindingConcrete(
+        IList<CurveLoop> curveLoops,
+        BlindingConcreteConfig blindingConcreteConfig,
+        ElementId floorTypeId,
+        ElementId levelId)
+    {
+        return Floor.Create(_doc, curveLoops, floorTypeId, levelId);
     }
 
-    public bool setOffsetFromInInitialPosition(Floor floorTarget, double valueOffset) {
-        if(floorTarget == null) {
+    /// <summary>Offset sàn so với Level (BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM). Giá trị feet.</summary>
+    public bool setOffsetFromInInitialPosition(Floor floorTarget, double valueOffset)
+    {
+        if (floorTarget == null)
+        {
             return false;
         }
         Parameter offsetParam = floorTarget.get_Parameter(BuiltInParameter.FLOOR_HEIGHTABOVELEVEL_PARAM);
         return offsetParam.Set(valueOffset);
-     
     }
-
 }
