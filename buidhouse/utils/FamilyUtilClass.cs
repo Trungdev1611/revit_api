@@ -1,5 +1,6 @@
-using System.Reflection;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+using Simpleform.buidhouse.constant;
 using Simpleform.buidhouse.utils;
 using Simpleform.drawWallRefactor;
 
@@ -7,39 +8,49 @@ namespace BuildHouse.Utils;
 
 public static class FamilyUtilClass
 {
-
-
-
-    //Try load family and trả ra familyloaded if load success
     public static bool TryLoadFamily(Document doc, string absolutePath, out Family? familyloaded)
     {
-
         return doc.LoadFamily(absolutePath, out familyloaded) && familyloaded != null;
     }
 
-    public static bool CheckFilePathExist(string fullPath) {
-        if(File.Exists(fullPath)) return true;
-        return false;
+    public static bool CheckFilePathExist(string fullPath)
+    {
+        return File.Exists(fullPath);
     }
 
-    //Get a family which was existed in the project or load new
-    public static Family GetFamilyIfExistedOrloadNew(Document _doc, string familyName, string relativePath) {
+    /// <summary>
+    /// keyInConfig ví dụ: "column-square", "beam-rectangular"
+    /// </summary>
+    public static Family? GetFamilyIfExistedOrloadNew(Document doc, string familyName, string keyInConfig)
+    {
+        Family? familyloaded = doc.GetFirstItemOrCondition<Family>(item => item.Name == familyName);
+        if (familyloaded != null)
+        {
+            return familyloaded;
+        }
 
-        //check xem family đã tồn tại với familyName hiện tại chưa, nếu có trả về luôn
-        Family familyloaded = _doc.GetFirstItemOrCondition<Family>(item => item.Name == familyName);
-        if(familyloaded != null) return familyloaded;
+        if (!Constant.FamilyFiles.TryGetValue(keyInConfig, out string? relativePath) || string.IsNullOrEmpty(relativePath))
+        {
+            TaskDialog.Show("Error", $"Không tìm thấy key family trong config: {keyInConfig}");
+            return null;
+        }
 
-        //nếu không có load family mới
-        //get fullpath - nơi cần load family
         string fullPathToLoadFamily = RevitUtil.resolveFamilyPath(relativePath);
 
-        bool isExistPath = CheckFilePathExist(fullPathToLoadFamily);
-        if(isExistPath) {
-            TryLoadFamily(_doc, fullPathToLoadFamily, out familyloaded);
+        if (!CheckFilePathExist(fullPathToLoadFamily))
+        {
+            TaskDialog.Show("Error",
+                $"Không tìm thấy file family:\n{fullPathToLoadFamily}\n\n" +
+                "Hãy copy file .rfa vào public\\families\\ rồi build lại.");
+            return null;
         }
+
+        if (!TryLoadFamily(doc, fullPathToLoadFamily, out familyloaded))
+        {
+            TaskDialog.Show("Error", $"Không load được family:\n{fullPathToLoadFamily}");
+            return null;
+        }
+
         return familyloaded;
-
-
     }
-
 }

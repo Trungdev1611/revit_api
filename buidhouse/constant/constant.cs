@@ -2,22 +2,13 @@ namespace Simpleform.buidhouse.constant;
 
 public static class Constant
 {
-
-    //trỏ đến thư mục chưa families sau khi build trong csproj file
-    // $(TargetDir)public\families\%(RecursiveDir)
-    public static readonly Dictionary<string, string> ColumnFamilyFiles = new()
+    // Key: "{category}-{shape}" — path tương đối so với thư mục DLL sau build
+    // csproj: $(TargetDir)public\families\...
+    public static readonly Dictionary<string, string> FamilyFiles = new()
     {
-        { "square", Path.Combine("public","families", "Columns", "Concrete-Square.rfa") }, //public là thư mục chứa các file family - thể hiện ở simpleForm.csproj
-        { "rectangular", Path.Combine("public","families", "Columns", "Concrete-Rectangular-Column.rfa") },
+        { "column-square", Path.Combine("public", "families", "Columns", "Concrete-Square.rfa") },
+        { "column-rectangular", Path.Combine("public", "families", "Columns", "Concrete-Rectangular-Column.rfa") },
+        { "beam-square", Path.Combine("public", "families", "Beams", "Concrete-Square-Beam.rfa") },
+        { "beam-rectangular", Path.Combine("public", "families", "Beams", "Concrete-Rectangular-Beam.rfa") },
     };
-
-    public static readonly Dictionary<string, string> BeamFamilyFiles = new()
-    {
-        { "square", Path.Combine("public", "families", "Beams", "Concrete-Square-Beam.rfa") },
-        { "rectangular", Path.Combine("public", "families", "Beams", "Concrete-Rectangular-Beam.rfa") },
-    };
-
-
-
- 
 }
