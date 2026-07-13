@@ -138,4 +138,14 @@ public class HouseBuilder
         columnService.CreateColumn(_doc, columnConfigs[2], col3Xyz);
         columnService.CreateColumn(_doc, columnConfigs[3], col4Xyz);
     }
+
+    private void CreateWallFromService()
+    {
+        
+    }
+
+    private void CreateBeamFromService()
+    {
+        
+    }
 }
