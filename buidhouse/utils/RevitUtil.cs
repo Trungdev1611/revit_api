@@ -25,11 +25,13 @@ public static class RevitUtil
          return loop;
      }
 
+    //lấy đường dẫn của addin =>đầu ra của file addin .dll: Example: C:\Users\trung\source\repos\Simpleform\Simpleform\bin\Debug\Simpleform.dll
      public static string getAddinDirectory()
      {
          return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
      }
 
+    //lấy đường dẫn của family => nối thêm relativePath vào đầu ra của getAddinDirectory(): Ex [Thư mục DLL] + \ + families\Columns\abc.rfa
      public static string resolveFamilyPath(string relativePath)
      {
          return Path.GetFullPath(Path.Combine(getAddinDirectory(), relativePath));

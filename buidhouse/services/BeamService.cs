@@ -1,6 +1,7 @@
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Structure;
 using Autodesk.Revit.UI;
+using BuildHouse.Utils;
 using Simpleform.buidhouse.constant;
 using Simpleform.buidhouse.models;
 using Simpleform.buidhouse.utils;
@@ -19,11 +20,7 @@ public class BeamService
         _doc = doc;
     }
 
-    public void LoadFamilyBeam(bool isSquare)
-    {
-        string relativePath = Constant.GetBeamFamilyFile(isSquare);
-        FamilyPathUtil.TryLoadFamily(_doc, relativePath, out _);
-    }
+
 
     public FamilyInstance? CreateBeam(BeamConfig config)
     {
@@ -38,53 +35,80 @@ public class BeamService
         }
 
         //get family beam - rectangle/ square
-        var shapeBeam = config.width == config.height ? BeamFamilyNameSquare : BeamFamilyNameRectangle;
-        var BeamFamilyName = $"{config.width}x{config.height}mm";
+        var familyName = config.width == config.height ? BeamFamilyNameSquare : BeamFamilyNameRectangle;
+        var TypeBeamName = $"{config.width}x{config.height}mm";
 
         //check xem loại dầm đó tồn tại trong dự án chưa
         FamilySymbol? beamTypeSymbol = _doc.GetFirstItemOrCondition<FamilySymbol>(
             x =>
-                x.FamilyName == shapeBeam &&
-                x.Name == BeamFamilyName,
+                x.FamilyName == familyName &&
+                x.Name == TypeBeamName,
             BuiltInCategory.OST_StructuralFraming);
 
-        if (beamTypeSymbol == null)
-        {
-            FamilySymbol? baseSymbol = _doc.GetFirstItemOrCondition<FamilySymbol>(
-                x => x.FamilyName == shapeBeam,
-                BuiltInCategory.OST_StructuralFraming);
 
-            if (baseSymbol == null)
-            {
-                bool isSquare = config.width == config.height;
-                if (FamilyPathUtil.TryLoadFamily(_doc, Constant.GetBeamFamilyFile(isSquare), out Family? family))
-                {
-                    ElementId? firstSymbolId = family.GetFamilySymbolIds().FirstOrDefault();
-                    if (firstSymbolId != null && firstSymbolId != ElementId.InvalidElementId)
+        string typeBeam = config.width == config.height ? "square" : "rectangular"; 
+        bool isExistFamilyNameInDictionary = Constant.BeamFamilyFiles.TryGetValue(typeBeam, out string relativePath);
+
+        //nếu không tồn tại loại dầm đó trong project, xem family dầm vuông hay chữ nhật có tồn tại trong project không để dùng nhân bản
+        // if (beamTypeSymbol == null)
+        // {
+        //     FamilySymbol? baseSymbol = _doc.GetFirstItemOrCondition<FamilySymbol>(
+        //         x => x.FamilyName == shapeBeam,
+        //         BuiltInCategory.OST_StructuralFraming);
+
+            //nếu vẫn không tồn tại family dầm vuông hay chữ nhật => load mới family
+            // if (baseSymbol == null)
+            // {
+                //check xem dầm vuông hay chữ nhật để load  family tương ứng
+                
+                //check xem tồn tại key trong dictionary không và lấy ra relativePath
+               
+            //     //từ relativePath lấy ra absolute path
+            //     string absolutePath = RevitUtil.resolveFamilyPath(relativePath);
+
+            // //load thử family và trả đầu ra là family đã được load
+            //     if (FamilyUtilClass.TryLoadFamily(_doc, absolutePath, out Family? familyloaded))
+            //     {
+            //         //lấy ra id của symbol đầu tiên trong family đã được load
+            //         ElementId? firstSymbolId = familyloaded.GetFamilySymbolIds().FirstOrDefault();
+            //         if (firstSymbolId != null && firstSymbolId != ElementId.InvalidElementId)
+            //         {
+            //             baseSymbol = _doc.GetElement(firstSymbolId) as FamilySymbol;
+            //         }
+            //     }
+
+            // }
+            Family familyloaded = FamilyUtilClass.GetFamilyIfExistedOrloadNew(_doc, familyName, relativePath);
+            //lấy symbol (type) dầu tiên tìm được
+            ElementId? firstSymbolId = familyloaded.GetFamilySymbolIds().FirstOrDefault();
+
+            FamilySymbol baseSymbol = null;
+            if (firstSymbolId != null && firstSymbolId != ElementId.InvalidElementId)
                     {
                         baseSymbol = _doc.GetElement(firstSymbolId) as FamilySymbol;
                     }
-                }
-            }
-
+            //nếu vẫn khoogn có type nào để nhân bản => show error
             if (baseSymbol == null)
             {
-                TaskDialog.Show("Error", $"Beam family not found: {shapeBeam}");
+                TaskDialog.Show("Error", $"Beam family don't have any type");
                 return null;
             }
 
-            beamTypeSymbol = baseSymbol.Duplicate(BeamFamilyName) as FamilySymbol;
+            //có type để nhân bản => nhân bản type đó với name là TypeBeamName
+            beamTypeSymbol = baseSymbol.Duplicate(TypeBeamName) as FamilySymbol;
 
             if (beamTypeSymbol == null)
             {
-                TaskDialog.Show("Error", $"Cannot duplicate beam type: {BeamFamilyName}");
+                TaskDialog.Show("Error", $"Cannot duplicate beam type: {TypeBeamName}");
                 return null;
             }
 
+            //đặt height và width cho type đã nhân bản
             SetParameterIfExists(beamTypeSymbol, "b", config.width);
             SetParameterIfExists(beamTypeSymbol, "h", config.height);
-        }
+        // }
 
+        //bắt buộc phải active type đã nhân bản để sử dụng được
         if (!beamTypeSymbol.IsActive)
         {
             beamTypeSymbol.Activate();

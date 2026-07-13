@@ -85,7 +85,7 @@ public class FloorService
         compound.SetLayerWidth(structureLayerIndex, targetThickness - otherLayersWidth);
     }
 
-    public Floor createBlindingConcrete(IList<CurveLoop> curveLoops, BlindingConcreteConfig blindingConcreteConfig, ElementId floorTypeId, ElementId levelId) {
+    public Floor createFloor(IList<CurveLoop> curveLoops, ElementId floorTypeId, ElementId levelId) {
         Floor newFloor = Floor.Create(_doc, curveLoops, floorTypeId, levelId);
         return newFloor;
     }

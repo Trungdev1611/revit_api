@@ -46,7 +46,7 @@ public class GridService
         return RevitUtil.createRectangleLoop(left, right, bottom, top, _center.Z);
     }
 
-    private (double left, double right, double bottom, double top) getFootprintBounds(double edgeExtensionMm = 0)
+    public (double left, double right, double bottom, double top) getFootprintBounds(double edgeExtensionMm = 0)
     {
         double extension = RevitUtil.convertToMeter(edgeExtensionMm);
         return (

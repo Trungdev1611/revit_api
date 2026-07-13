@@ -10,4 +10,6 @@ public class BlindingConcreteConfig : IFloor
 	public string LevelName { get; set; }
 
 	public double offsetFromLevelTarget { get; set; } = -150 / 304.8;
+
+	
 }

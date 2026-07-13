@@ -17,50 +17,41 @@
         <Private>False</Private>
       </Reference>
 
-      <None Update="buidhouse\families\**\*">
+      <!-- <None Update="buidhouse\public\families\**\*">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
+      </None> -->
     </ItemGroup>
     
-    <Target Name="GomFileThuongMai" AfterTargets="Build">
-        <MakeDir Directories="$(TargetDir)buildhouse_Files" />
-        <MakeDir Directories="$(TargetDir)buildhouse_Files\families" />
+    <!-- TargetDir là biến có sẵn vị trị thư mục đầu ra của project .dll-->
 
-        <Move SourceFiles="$(TargetPath)" DestinationFolder="$(TargetDir)buildhouse_Files" />
+    <Target Name="GomFileThuongMai" AfterTargets="Build">
+        <!-- <MakeDir Directories="$(TargetDir)buildhouse_Files" />
+        <MakeDir Directories="$(TargetDir)buildhouse_Files\families" /> -->
+
+        
+        <!-- <Move SourceFiles="$(TargetPath)" DestinationFolder="$(TargetDir)buildhouse_Files" /> -->
 
         <ItemGroup>
-            <FamilyFiles Include="$(TargetDir)buidhouse\families\**\*.*" />
+        <!-- lấy tất cả các file trong thư mục families -->
+        <!-- ProjectDir là biến có sẵn vị trị thư mục project chứa file csproj-->
+        <!-- buidhouse\public\families\**\*.* là đường dẫn tới thư mục families trong thư mục public của buidhouse-->
+            <FamilyFiles Include="$(ProjectDir)buidhouse\public\families\**\*.*" /> 
         </ItemGroup>
 
+        <!-- FamilyFiles là tên của item group được tạo ở trên Move family files to public folder sau khi build-->
         <Move
-            SourceFiles="@(FamilyFiles)"
-            DestinationFolder="$(TargetDir)buildhouse_Files\families\%(RecursiveDir)"
-            Condition="'@(FamilyFiles)' != ''" />
+            SourceFiles="@(FamilyFiles)" 
+            DestinationFolder="$(TargetDir)public\families\%(RecursiveDir)"
+            Condition="'@(FamilyFiles)' != ''" 
+            />
 
+        <!-- copy file buildhouse.addin từ thư mục buidhouse của project vào thư mục đầu ra của project-->
         <Copy SourceFiles="$(ProjectDir)buidhouse\buildhouse.addin" DestinationFolder="$(TargetDir)" />
 
-        <RemoveDir Directories="$(TargetDir)buidhouse" Condition="Exists('$(TargetDir)buidhouse')" />
+        <!-- xóa thư mục buidhouse trong thư mục đầu ra của project-->
+        <!-- <RemoveDir Directories="$(TargetDir)buidhouse" Condition="Exists('$(TargetDir)buidhouse')" /> -->
     </Target>
 
-</Project>
-    <Target Name="GomFileThuongMai" AfterTargets="Build">
-        <MakeDir Directories="$(TargetDir)buildhouse_Files" />
-        <MakeDir Directories="$(TargetDir)buildhouse_Files\families" />
 
-        <Move SourceFiles="$(TargetPath)" DestinationFolder="$(TargetDir)buildhouse_Files" />
-
-        <ItemGroup>
-            <FamilyFiles Include="$(TargetDir)buidhouse\families\**\*.*" />
-        </ItemGroup>
-
-        <Move
-            SourceFiles="@(FamilyFiles)"
-            DestinationFolder="$(TargetDir)buildhouse_Files\families\%(RecursiveDir)"
-            Condition="'@(FamilyFiles)' != ''" />
-
-        <Copy SourceFiles="$(ProjectDir)buidhouse\buildhouse.addin" DestinationFolder="$(TargetDir)" />
-
-        <RemoveDir Directories="$(TargetDir)buidhouse" Condition="Exists('$(TargetDir)buidhouse')" />
-    </Target>
 
 </Project>

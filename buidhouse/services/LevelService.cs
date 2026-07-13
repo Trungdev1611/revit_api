@@ -24,7 +24,7 @@ public static class LevelService
         {
             if(existingLevels.ContainsKey(levelConfig.Name))
             {
-                existingLevels[levelConfig.Name].Elevation = levelConfig.Elevation;
+                existingLevels[levelConfig.Name].Elevation =  RevitUtil.convertToMeter(levelConfig.Elevation);
             } else {
                 CreateNewLevel(doc, levelConfig.Elevation, levelConfig.Name);
             }

@@ -47,6 +47,8 @@ public class ColumnService
             isType: true
         );
 
+
+
         if (familySymbol != null)
         {
             return familySymbol;
