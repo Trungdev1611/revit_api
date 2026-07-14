@@ -1,4 +1,5 @@
 using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
 using BuildHouse.Models;
 using Simpleform.buidhouse.models;
 using Simpleform.buidhouse.utils;
@@ -139,7 +140,7 @@ public class HouseBuilder
         columnService.CreateColumn(_doc, columnConfigs[3], col4Xyz);
     }
 
-    private void CreateWallFromService(GridService gridService, Level level1)
+    private void CreateWallFromService(Document doc, WallConfig wallConfig)
     {
         // var listWall = new List<WallConfig>() {
         //     new WallConfig(220, "level1", true),
@@ -147,9 +148,75 @@ public class HouseBuilder
         //     new WallConfig(220, "level1", true),
         //     new WallConfig(220, "level1", true),
         // };
-        double ColumnWidth = 220; //cột 220x220
-        ColumnService columnService = new ColumnService();
-        (double left, double right, double bottom, double top) = gridService.getFootprintBounds(-halfColumnWidth);
+        //  Quét toàn bộ Cột kết cấu trong View hiện hành
+        List<Element> columns = new FilteredElementCollector(doc, doc.ActiveView.Id)
+        .OfCategory(BuiltInCategory.OST_StructuralColumns)
+        .WhereElementIsNotElementType()
+        .ToList();
+
+        if(columns.Count < 2)
+        {
+            TaskDialog.Show("Thông báo", "Không đủ số lượng cột trên mặt bằng này để vẽ tường");
+            return ;
+        }
+
+        // --- BƯỚC 1: QUÉT CỘT VÀ VẼ TƯỜNG NỐI TÂM ---
+        for(int i  = 0; i< columns.Count; i++)
+        {
+            for(int j = 1; j<columns.Count; j++)
+            {
+                Element colA = columns[i];
+                Element colB = columns[j];
+
+                //lấy vị trí tâm cột A, tâm cột B
+                LocationPoint locA = colA.Location as LocationPoint;
+                LocationPoint locB = colB.Location as LocationPoint;
+                
+                if(locA == null || locB == null) continue;
+
+                XYZ pointA = locA.Point;
+                XYZ pointB = locB.Point;
+                // 1. Tính toán Vector hướng từ cột A sang cột B và chuẩn hóa nó (độ dài = 1)
+                XYZ direction = (pointB = pointA).Normalize();
+
+                //2. Lấy kích thước (độ rộng/độ dày) của cột A và cột B từ parameter của Type
+                //Trong revit, cột kết cấu thường là bxh (trừ khi người dùng tạo có thể có tên khác)
+                ElementType colTypeA = doc.GetElement(colA.GetTypeId()) as ElementType;
+                ElementType colTypeB = doc.GetElement(colB.GetTypeId()) as ElementType;
+
+                //Lấy giá trị b và h từ Family Parameter (Feet)
+                double widthA = colTypeA.LookupParameter("b").AsDouble();
+                double widthB = colTypeB.LookupParameter("b").AsDouble();
+
+                double heightA = colTypeA.LookupParameter("h").AsDouble();
+                double heightB = colTypeB.LookupParameter("h").AsDouble();
+
+                // 3. Xác định xem hướng vẽ tường đang đi theo chiều nào của cột để lấy nửa độ rộng cho đúng
+                double offsetA = 0;
+                double offsetB = 0;
+                // Nếu tường chạy dọc theo trục X (thẳng hàng ngang) -> Dùng nửa chiều rộng "b"
+                if(Math.Abs(direction.Y) < 0.1)
+                {
+                    offsetA = widthA / 2; //vì lấy tọa độ tim cột nên cần offset nửa cột để ra mép - chuẩn xác thay vì để tường và cột tự join nhau
+                    offsetB = widthB / 2;
+                }
+                if(Math.Abs(direction.X) < 0.1)
+                {
+                    offsetA = heightA /2;
+                    offsetB = heightB / 2;
+                }
+                //4. tịnh tiến điểm tâm ra điểm mép bằng toán vector
+                XYZ wallStartPoint = pointA + direction * offsetA;
+                XYZ wallEndPoint = pointB - direction * offsetB;
+                double BaseOffsetWall = colA.LookupParameter("Base Offset").AsDouble();
+
+                WallService wallService = new WallService(_doc);
+                wallService.CreateWall(wallConfig, wallStartPoint, wallEndPoint)
+                
+            }
+        }
+  
+       
 
     }
 

@@ -8,11 +8,12 @@ namespace Simpleform.buidhouse.services;
 public class WallService
 {
     private Document _doc;
+    private Dictionary<string, WallType> DictionaryWall;
     public WallService(Document doc)
     {   
         this._doc = doc;
     }
-    public Wall CreateWall(WallConfig wallconfig, XYZ startPoint, XYZ endpoint)
+    public Wall CreateWall(WallConfig wallconfig,   XYZ startPoint, XYZ endpoint, double BaseOffset = 0)
     {
         double targetThicknessWall =  RevitUtil.convertToMeter(wallconfig.ThicknessWall) ;  
 
@@ -31,8 +32,7 @@ public class WallService
         {
             throw new DllNotFoundException("Không tìm thấy level tương ứng. Check level tồn tại hay không");
         }
-        var baseOffset = 0;
-        return Wall.Create(_doc, line, wallTypeWithThicknessInitOrFirstDefault.Id, level.LevelId, level.Elevation, baseOffset, true, wallconfig.IsStructural );
+        return Wall.Create(_doc, line, wallTypeWithThicknessInitOrFirstDefault.Id, level.LevelId, level.Elevation, BaseOffset, true, wallconfig.IsStructural );
 
 
 
