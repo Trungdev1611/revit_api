@@ -139,9 +139,18 @@ public class HouseBuilder
         columnService.CreateColumn(_doc, columnConfigs[3], col4Xyz);
     }
 
-    private void CreateWallFromService()
+    private void CreateWallFromService(GridService gridService, Level level1)
     {
-        
+        // var listWall = new List<WallConfig>() {
+        //     new WallConfig(220, "level1", true),
+        //     new WallConfig(220, "level1", true),
+        //     new WallConfig(220, "level1", true),
+        //     new WallConfig(220, "level1", true),
+        // };
+        double ColumnWidth = 220; //cột 220x220
+        ColumnService columnService = new ColumnService();
+        (double left, double right, double bottom, double top) = gridService.getFootprintBounds(-halfColumnWidth);
+
     }
 
     private void CreateBeamFromService()

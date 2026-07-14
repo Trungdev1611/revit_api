@@ -12,7 +12,7 @@ public class WallService
     {   
         this._doc = doc;
     }
-    public void createWall(WallConfig wallconfig, XYZ startPoint, XYZ endpoint)
+    public Wall CreateWall(WallConfig wallconfig, XYZ startPoint, XYZ endpoint)
     {
         double targetThicknessWall =  RevitUtil.convertToMeter(wallconfig.ThicknessWall) ;  
 
@@ -22,7 +22,7 @@ public class WallService
             x=> 
             x.Kind == WallKind.Basic && Math.Abs(x.GetCompoundStructure().GetWidth() - targetThicknessWall) < 1e-6);
 
-        Line line = Line.CreateBound(startPoint, endpoint);
+        Curve line = Line.CreateBound(startPoint, endpoint); //Curve
 
         Level level = new FilteredElementCollector(_doc).OfClass(typeof(Level)).Cast<Level>()
         .FirstOrDefault(x => x.Name == wallconfig.LevelName);
@@ -31,7 +31,8 @@ public class WallService
         {
             throw new DllNotFoundException("Không tìm thấy level tương ứng. Check level tồn tại hay không");
         }
-        
+        var baseOffset = 0;
+        return Wall.Create(_doc, line, wallTypeWithThicknessInitOrFirstDefault.Id, level.LevelId, level.Elevation, baseOffset, true, wallconfig.IsStructural );
 
 
 
