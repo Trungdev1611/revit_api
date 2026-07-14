@@ -15,6 +15,6 @@ public record ColumnConfig(
     double BaseOffset = 0.0,
     double TopOffset = 0.0,
     ColumnShape TypeColumn = ColumnShape.square,
-    string FamilyName = "Concrete Square"
+    string FamilyName = "Concrete_Square"
   );
 

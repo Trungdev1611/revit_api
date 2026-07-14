@@ -23,7 +23,7 @@ public static class FamilyUtilClass
     /// </summary>
     public static Family? GetFamilyIfExistedOrloadNew(Document doc, string familyName, string keyInConfig)
     {
-        Family? familyloaded = doc.GetFirstItemOrCondition<Family>(item => item.Name == familyName);
+        Family? familyloaded = doc.GetFirstItemOrCondition<Family>(item => item.Name == familyName,    isType: true);
         if (familyloaded != null)
         {
             return familyloaded;

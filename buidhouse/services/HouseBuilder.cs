@@ -20,23 +20,33 @@ public class HouseBuilder
 
     public bool Build(XYZ centerPoint, out string message)
     {
+        AppLog.Information("HouseBuilder.Build start");
 
         GridService gridService = new GridService(centerPoint, _doc);
         gridService.createGrids();
+        AppLog.Information("Grids created");
 
         CreateLevels();
+        AppLog.Information("Levels created/updated");
 
         if (!CreateBlindingFloor(gridService, out message, out Level level1))
         {
+            AppLog.Warning("CreateBlindingFloor failed: {0}", message);
             return false;
         }
 
         if (!CreateFloor(gridService, level1.Id, out message))
         {
+            AppLog.Warning("CreateFloor failed: {0}", message);
             return false;
         }
 
         CreateColumns(gridService, level1);
+        AppLog.Information("Columns step done");
+        _doc.Regenerate();
+        var wallConfig = new WallConfig(220, "Level 1");
+        CreateWallFromService(_doc, wallConfig);
+        AppLog.Information("HouseBuilder.Build finished");
 
         return true;
     }
@@ -161,9 +171,10 @@ public class HouseBuilder
         }
 
         // --- BƯỚC 1: QUÉT CỘT VÀ VẼ TƯỜNG NỐI TÂM ---
+        AppLog.Information("CreateWallFromService: {0} columns", columns.Count);
         for(int i  = 0; i< columns.Count; i++)
         {
-            for(int j = 1; j<columns.Count; j++)
+            for(int j = i + 1; j<columns.Count; j++)
             {
                 Element colA = columns[i];
                 Element colB = columns[j];
@@ -176,20 +187,50 @@ public class HouseBuilder
 
                 XYZ pointA = locA.Point;
                 XYZ pointB = locB.Point;
-                // 1. Tính toán Vector hướng từ cột A sang cột B và chuẩn hóa nó (độ dài = 1)
-                XYZ direction = (pointB = pointA).Normalize();
+
+                // Chỉ nối cột thẳng hàng ngang hoặc thẳng đứng — bỏ đường chéo
+                XYZ delta = pointB - pointA;
+                bool isHorizontal = Math.Abs(delta.Y) < 0.1 && Math.Abs(delta.X) > 0.1;
+                bool isVertical = Math.Abs(delta.X) < 0.1 && Math.Abs(delta.Y) > 0.1;
+                if (!isHorizontal && !isVertical)
+                {
+                    continue;
+                }
+
+                if (delta.GetLength() < 1e-9)
+                {
+                    AppLog.Warning("Skip wall: col {0}->{1} same point", i, j);
+                    continue;
+                }
+                XYZ direction = delta.Normalize();
 
                 //2. Lấy kích thước (độ rộng/độ dày) của cột A và cột B từ parameter của Type
-                //Trong revit, cột kết cấu thường là bxh (trừ khi người dùng tạo có thể có tên khác)
                 ElementType colTypeA = doc.GetElement(colA.GetTypeId()) as ElementType;
                 ElementType colTypeB = doc.GetElement(colB.GetTypeId()) as ElementType;
+                if (colTypeA == null || colTypeB == null)
+                {
+                    AppLog.Warning("Skip wall: missing column type for {0}->{1}", i, j);
+                    continue;
+                }
 
-                //Lấy giá trị b và h từ Family Parameter (Feet)
-                double widthA = colTypeA.LookupParameter("b").AsDouble();
-                double widthB = colTypeB.LookupParameter("b").AsDouble();
+                Parameter? paramBA = colTypeA.LookupParameter("b");
+                Parameter? paramBB = colTypeB.LookupParameter("b");
+                if (paramBA == null || paramBB == null)
+                {
+                    AppLog.Error(
+                        "Null column size param b. TypeA={0} TypeB={1}",
+                        colTypeA.Name, colTypeB.Name);
+                    continue;
+                }
 
-                double heightA = colTypeA.LookupParameter("h").AsDouble();
-                double heightB = colTypeB.LookupParameter("h").AsDouble();
+                // Cột vuông thường chỉ có b; nếu không có h thì dùng b
+                Parameter? paramHA = colTypeA.LookupParameter("h") ?? paramBA;
+                Parameter? paramHB = colTypeB.LookupParameter("h") ?? paramBB;
+
+                double widthA = paramBA.AsDouble();
+                double widthB = paramBB.AsDouble();
+                double heightA = paramHA.AsDouble();
+                double heightB = paramHB.AsDouble();
 
                 // 3. Xác định xem hướng vẽ tường đang đi theo chiều nào của cột để lấy nửa độ rộng cho đúng
                 double offsetA = 0;
@@ -197,7 +238,7 @@ public class HouseBuilder
                 // Nếu tường chạy dọc theo trục X (thẳng hàng ngang) -> Dùng nửa chiều rộng "b"
                 if(Math.Abs(direction.Y) < 0.1)
                 {
-                    offsetA = widthA / 2; //vì lấy tọa độ tim cột nên cần offset nửa cột để ra mép - chuẩn xác thay vì để tường và cột tự join nhau
+                    offsetA = widthA / 2;
                     offsetB = widthB / 2;
                 }
                 if(Math.Abs(direction.X) < 0.1)
@@ -208,10 +249,16 @@ public class HouseBuilder
                 //4. tịnh tiến điểm tâm ra điểm mép bằng toán vector
                 XYZ wallStartPoint = pointA + direction * offsetA;
                 XYZ wallEndPoint = pointB - direction * offsetB;
-                double BaseOffsetWall = colA.LookupParameter("Base Offset").AsDouble();
+                Parameter? baseOffsetParam = colA.LookupParameter("Base Offset");
+                if (baseOffsetParam == null)
+                {
+                    AppLog.Warning("Skip wall: missing Base Offset on column {0}", i);
+                    continue;
+                }
+                double BaseOffsetWall = baseOffsetParam.AsDouble();
 
                 WallService wallService = new WallService(_doc);
-                wallService.CreateWall(wallConfig, wallStartPoint, wallEndPoint)
+                wallService.CreateWall(wallConfig, wallStartPoint, wallEndPoint, BaseOffsetWall);
                 
             }
         }
