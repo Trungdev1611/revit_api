@@ -14,22 +14,11 @@ public class WallService
         _doc = doc;
     }
 
-    public Wall CreateWall(WallConfig wallconfig, XYZ startPoint, XYZ endpoint, double BaseOffset = 0)
+    public Wall CreateWall(WallConfig wallconfig, XYZ startPoint, XYZ endpoint, Level level, double BaseOffset = 0)
     {
         WallType wallType = GetOrCreateWallType(wallconfig.ThicknessWall);
 
         Curve line = Line.CreateBound(startPoint, endpoint);
-
-        Level? level = new FilteredElementCollector(_doc)
-            .OfClass(typeof(Level))
-            .Cast<Level>()
-            .FirstOrDefault(x => x.Name.Equals(wallconfig.LevelName, StringComparison.OrdinalIgnoreCase));
-
-        if (level == null)
-        {
-            throw new InvalidOperationException(
-                $"Không tìm thấy level tương ứng: '{wallconfig.LevelName}'.");
-        }
 
         double wallHeight = GetWallHeightFromLevel(level);
 
@@ -140,5 +129,101 @@ public class WallService
         }
 
         return RevitUtil.convertToMeter(3600);
+    }
+
+    public List<Wall> CreateWallFromColumns(List<Element> columns, WallConfig wallConfig, Level level ) {
+        var listWall = new List<Wall>() {};
+             for(int i  = 0; i< columns.Count; i++)
+        {
+            for(int j = i + 1; j<columns.Count; j++)
+            {
+                Element colA = columns[i];
+                Element colB = columns[j];
+
+                //lấy vị trí tâm cột A, tâm cột B
+                LocationPoint locA = colA.Location as LocationPoint;
+                LocationPoint locB = colB.Location as LocationPoint;
+                
+                if(locA == null || locB == null) continue;
+
+                XYZ pointA = locA.Point;
+                XYZ pointB = locB.Point;
+
+                // Chỉ nối cột thẳng hàng ngang hoặc thẳng đứng — bỏ đường chéo
+                XYZ delta = pointB - pointA;
+                bool isHorizontal = Math.Abs(delta.Y) < 0.1 && Math.Abs(delta.X) > 0.1;
+                bool isVertical = Math.Abs(delta.X) < 0.1 && Math.Abs(delta.Y) > 0.1;
+                if (!isHorizontal && !isVertical)
+                {
+                    continue;
+                }
+
+                if (delta.GetLength() < 1e-9)
+                {
+                    AppLog.Warning("Skip wall: col {0}->{1} same point", i, j);
+                    continue;
+                }
+                XYZ direction = delta.Normalize();
+
+                //2. Lấy kích thước (độ rộng/độ dày) của cột A và cột B từ parameter của Type
+                ElementType colTypeA = _doc.GetElement(colA.GetTypeId()) as ElementType;
+                ElementType colTypeB = _doc.GetElement(colB.GetTypeId()) as ElementType;
+                if (colTypeA == null || colTypeB == null)
+                {
+                    AppLog.Warning("Skip wall: missing column type for {0}->{1}", i, j);
+                    continue;
+                }
+
+                Parameter? paramBA = colTypeA.LookupParameter("b");
+                Parameter? paramBB = colTypeB.LookupParameter("b");
+                if (paramBA == null || paramBB == null)
+                {
+                    AppLog.Error(
+                        "Null column size param b. TypeA={0} TypeB={1}",
+                        colTypeA.Name, colTypeB.Name);
+                    continue;
+                }
+
+                // Cột vuông thường chỉ có b; nếu không có h thì dùng b
+                Parameter? paramHA = colTypeA.LookupParameter("h") ?? paramBA;
+                Parameter? paramHB = colTypeB.LookupParameter("h") ?? paramBB;
+
+                double widthA = paramBA.AsDouble();
+                double widthB = paramBB.AsDouble();
+                double heightA = paramHA.AsDouble();
+                double heightB = paramHB.AsDouble();
+
+                // 3. Xác định xem hướng vẽ tường đang đi theo chiều nào của cột để lấy nửa độ rộng cho đúng
+                double offsetA = 0;
+                double offsetB = 0;
+                // Nếu tường chạy dọc theo trục X (thẳng hàng ngang) -> Dùng nửa chiều rộng "b"
+                if(Math.Abs(direction.Y) < 0.1)
+                {
+                    offsetA = widthA / 2;
+                    offsetB = widthB / 2;
+                }
+                if(Math.Abs(direction.X) < 0.1)
+                {
+                    offsetA = heightA /2;
+                    offsetB = heightB / 2;
+                }
+                //4. tịnh tiến điểm tâm ra điểm mép bằng toán vector
+                XYZ wallStartPoint = pointA + direction * offsetA;
+                XYZ wallEndPoint = pointB - direction * offsetB;
+                Parameter? baseOffsetParam = colA.LookupParameter("Base Offset");
+                if (baseOffsetParam == null)
+                {
+                    AppLog.Warning("Skip wall: missing Base Offset on column {0}", i);
+                    continue;
+                }
+                double BaseOffsetWall = baseOffsetParam.AsDouble();
+
+              
+                Wall newWall = this.CreateWall(wallConfig, wallStartPoint, wallEndPoint, level, BaseOffsetWall);
+                listWall.Add(newWall); 
+            }
+        }
+
+        return listWall;
     }
 }

@@ -6,29 +6,32 @@ namespace Simpleform.buidhouse.services;
 
 public static class LevelService
 {
-
     public static Level CreateNewLevel(Document doc, double elevationMm, string levelName)
-    {   
+    {
         Level newLevel = Level.Create(doc, RevitUtil.convertToMeter(elevationMm));
         newLevel.Name = levelName;
         return newLevel;
     }
 
-    public static void CreateOrUpdateLevel(Document doc, List<LevelConfig> levelConfigs) {
-        Dictionary<string, Level> existingLevels = new FilteredElementCollector(doc)
-        .OfClass(typeof(Level))
-        .Cast<Level>()
-        .ToDictionary(level => level.Name, level => level);
+    public static Dictionary<string, Level> CreateOrUpdateLevel(Document doc, List<LevelConfig> levelConfigs)
+    {
+        Dictionary<string, Level> levels = new FilteredElementCollector(doc)
+            .OfClass(typeof(Level))
+            .Cast<Level>()
+            .ToDictionary(level => level.Name, level => level);
 
         foreach (LevelConfig levelConfig in levelConfigs)
         {
-            if(existingLevels.ContainsKey(levelConfig.Name))
+            if (levels.TryGetValue(levelConfig.Name, out Level? existing))
             {
-                existingLevels[levelConfig.Name].Elevation =  RevitUtil.convertToMeter(levelConfig.Elevation);
-            } else {
-                CreateNewLevel(doc, levelConfig.Elevation, levelConfig.Name);
+                existing.Elevation = RevitUtil.convertToMeter(levelConfig.Elevation);
+            }
+            else
+            {
+                levels[levelConfig.Name] = CreateNewLevel(doc, levelConfig.Elevation, levelConfig.Name);
             }
         }
 
+        return levels;
     }
 }
