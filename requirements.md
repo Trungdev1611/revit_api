@@ -86,3 +86,41 @@ MyRevitHouseBuilder/
 └── Utils/
     ├── RevitUnitUtils.cs      # Hàm static đổi mm <=> Feet
     └── FilterUtils.cs         # Hàm static lọc nhanh FamilySymbol, Level theo tên
+
+
+1. Hoàn thiện dầm (1–2 ngày) — củng cố API vừa học
+
+Set Mark, Comment lên FamilyInstance sau CreateBeam
+Đặt dầm đúng cao độ (top level / offset Z, không chỉ level1)
+Kiểm tra dầm trùng tường/cột — log cảnh báo thay vì throw khi thiếu segment
+→ Học: parameters, elevation, debug thực tế trong model.
+
+2. Gom config — HouseConfig (2–3 ngày)
+Hardcode 220, 400, "Level 1" rải khắp HouseBuilder → một object config (JSON hoặc record) đọc một lần, truyền xuống service.
+
+→ Học: thiết kế add-in, không phải API Revit mới nhưng level up rõ.
+
+3. Form nhập liệu (WPF / WinForms) (1 tuần)
+Chiều rộng nhà, số tầng, tiết diện cột/dầm/tường trước khi Build.
+
+→ Học: Revit external UI, validation input, tách UI khỏi logic.
+
+4. Tầng 2 — lặp pattern có ý thức (1 tuần)
+Sàn L2, cột L2→L3, tường L2, dầm sàn L2 — không copy CreateColumns; tách BuildFloor(Level, config) dùng chung.
+
+→ Học: refactor, DRY, orchestration.
+
+5. Join / Cut / Regenerate (khó hơn, rất đáng)
+JoinGeometryUtils, InstanceVoidCutUtils, hoặc ít nhất doc.Regenerate() đúng chỗ sau khi tạo hàng loạt.
+
+→ Học: hành vi model Revit — chỗ nhiều người làm add-in hay vấp.
+
+6. Failure handling (production skill)
+IFailuresPreprocessor, bắt warning “elements overlap”, quyết định ignore hay rollback transaction.
+
+→ Học: transaction thật, không chỉ Start/Commit đơn giản.
+
+7. Tool nhỏ riêng (song song)
+Ví dụ: đổi tên level hàng loạt, export grid ra CSV, pick 2 cột vẽ tường thủ công.
+
+→ Học: selection, PickObject, API khác domain — tránh “chỉ biết dựng nhà”.

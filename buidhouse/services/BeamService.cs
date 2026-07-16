@@ -18,20 +18,12 @@ public class BeamService
         _doc = doc;
     }
 
-    public FamilyInstance? CreateBeam(BeamConfig config)
+    public FamilyInstance? CreateBeam(BeamConfig config, Level level, XYZ startPoint, XYZ endPoint)
     {
-        Level? level = _doc.GetFirstItemOrCondition<Level>(
-            x => x.Name == config.levelName);
-
-        if (level == null)
-        {
-            TaskDialog.Show("Error", $"Level not found: {config.levelName}");
-            return null;
-        }
-
-        bool isSquare = config.width == config.height;
+      
+        bool isSquare = config.Width == config.Height;
         string familyName = isSquare ? BeamFamilyNameSquare : BeamFamilyNameRectangle;
-        string typeBeamName = $"{config.width}x{config.height}mm";
+        string typeBeamName = $"{config.Width}x{config.Height}mm";
         string familyKey = isSquare ? "beam-square" : "beam-rectangular";
 
         //check xem loại dầm đó tồn tại trong dự án chưa
@@ -69,8 +61,8 @@ public class BeamService
                 return null;
             }
 
-            SetParameterIfExists(beamTypeSymbol, "b", config.width);
-            SetParameterIfExists(beamTypeSymbol, "h", config.height);
+            SetParameterIfExists(beamTypeSymbol, "b", config.Width);
+            SetParameterIfExists(beamTypeSymbol, "h", config.Height);
         }
 
         if (!beamTypeSymbol.IsActive)
@@ -79,7 +71,7 @@ public class BeamService
             _doc.Regenerate();
         }
 
-        Line line = Line.CreateBound(config.StartPoint, config.EndPoint);
+        Line line = Line.CreateBound(startPoint, endPoint);
 
         return _doc.Create.NewFamilyInstance(
             line,

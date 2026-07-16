@@ -1,7 +1,7 @@
 namespace Simpleform.buidhouse.utils;
 
 /// <summary>
-/// File logger đơn giản — tránh Serilog vì Revit/addin khác hay load Serilog.dll lệch version
+/// Serilog error
 /// → MissingMethodException khi chạy qua AddinManager.
 /// </summary>
 public static class AppLog
@@ -9,10 +9,14 @@ public static class AppLog
     private static readonly object Gate = new();
     private static bool _initialized;
 
-    public static string LogPath { get; } =
+    // Dev: log trong source để xem nhanh trên Cursor. Đổi path khi clone máy khác.
+    private static readonly string LogDirectory =
+        @"d:\source\Trungdev1611\revit_api\logs";
+
+    public static string LogPath =>
         Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
-            "Simpleform-BuildHouse.log");
+            LogDirectory,
+            $"BuildHouse-{DateTime.Now:yyyy-MM-dd}.log");
 
     public static void Init()
     {
@@ -58,6 +62,7 @@ public static class AppLog
 
             lock (Gate)
             {
+                Directory.CreateDirectory(LogDirectory);
                 File.AppendAllText(LogPath, line + Environment.NewLine);
             }
         }

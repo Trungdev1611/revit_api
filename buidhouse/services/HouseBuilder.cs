@@ -11,6 +11,7 @@ public class HouseBuilder
 {
     private readonly Document _doc;
     private readonly FloorService _floorService;
+    private List<(XYZ startPoint, XYZ endPoint)> listSegment;
 
     public HouseBuilder(Document doc)
     {
@@ -27,11 +28,12 @@ public class HouseBuilder
         AppLog.Information("Grids created");
 
         Dictionary<string, Level> levels = CreateLevels();
-        Level level1 = levels["Level 1"];
-        Level level2 = levels["Level 2"];
         AppLog.Information("Levels created/updated");
 
-        if (!CreateBlindingFloor(gridService, out message, level1))
+        Level level1 = RequireLevel(levels, "Level 1");
+        Level level2 = RequireLevel(levels, "Level 2");
+
+        if (!CreateBlindingFloor(gridService, level1, out message))
         {
             AppLog.Warning("CreateBlindingFloor failed: {0}", message);
             return false;
@@ -46,15 +48,18 @@ public class HouseBuilder
         CreateColumns(gridService, level1, level2);
         AppLog.Information("Columns step done");
         _doc.Regenerate();
-
         var wallConfig = new WallConfig(220);
-        CreateWallFromService(_doc, wallConfig, level1);
-        AppLog.Information("HouseBuilder.Build finished");
+        CreateWallFromService(_doc, wallConfig, level1, level2);
 
+
+        var beamConfig = new BeamConfig(220, 400);
+        CreateBeamFromService(_doc, beamConfig, level2); //level2 là đỉnh dầm truyền vào vì dầm luôn ăn theo sàn
+        AppLog.Information("Beam finished");
+        AppLog.Information("HouseBuilder.Build finished");
         return true;
     }
 
-    //create grid levels
+    //create grid levels — giữ map tên→Level để các bước sau reuse
     private Dictionary<string, Level> CreateLevels()
     {
         List<LevelConfig> levelConfigs = new List<LevelConfig> {
@@ -65,15 +70,22 @@ public class HouseBuilder
         return LevelService.CreateOrUpdateLevel(_doc, levelConfigs);
     }
 
+    private static Level RequireLevel(Dictionary<string, Level> levels, string name)
+    {
+        if (!levels.TryGetValue(name, out Level? level))
+        {
+            throw new InvalidOperationException($"Không tìm thấy level '{name}'.");
+        }
+        return level;
+    }
+
     //create blinding floor
     private bool CreateBlindingFloor(
         GridService gridService,
-        out string message,
-        Level level
-        )
+        Level level1,
+        out string message)
     {
         message = string.Empty;
- 
 
         BlindingConcreteConfig blindingConcreteConfig = new BlindingConcreteConfig();
         ElementId blindingFloorTypeId = _floorService.getFloorTypeIdOrCreateNew(blindingConcreteConfig);
@@ -83,9 +95,11 @@ public class HouseBuilder
             return false;
         }
 
-        ElementId levelId = level.Id;
         CurveLoop footingLoop = gridService.createFootprintLoop(blindingConcreteConfig.EdgeExtensionMm);
-        Floor floor = _floorService.createFloor(new List<CurveLoop> { footingLoop }, blindingFloorTypeId, levelId);
+        Floor floor = _floorService.createFloor(
+            new List<CurveLoop> { footingLoop },
+            blindingFloorTypeId,
+            level1.Id);
 
         //offset floor to offsetFromLevelTarget = -150mm
         bool isSuccessOffset = _floorService.setOffsetFromInInitialPosition(floor, blindingConcreteConfig.offsetFromLevelTarget);
@@ -151,7 +165,7 @@ public class HouseBuilder
         columnService.CreateColumn(_doc, columnConfigs[3], col4Xyz);
     }
 
-    private void CreateWallFromService(Document doc, WallConfig wallConfig, Level level)
+    private List<Wall> CreateWallFromService(Document doc, WallConfig wallConfig, Level baseLevel, Level topLevel)
     {
 
         //  Quét toàn bộ Cột kết cấu trong View hiện hành
@@ -160,24 +174,28 @@ public class HouseBuilder
         .WhereElementIsNotElementType()
         .ToList();
 
-        if(columns.Count < 2)
+        if (columns.Count < 2)
         {
             TaskDialog.Show("Thông báo", "Không đủ số lượng cột trên mặt bằng này để vẽ tường");
-            return ;
+            return null;
         }
-
-        // --- BƯỚC 1: QUÉT CỘT VÀ VẼ TƯỜNG NỐI TÂM ---
-        AppLog.Information("CreateWallFromService: {0} columns", columns.Count);
-        WallService wallService = new WallService(_doc);
-
-        wallService.CreateWallFromColumns(columns, wallConfig, level);
-  
-       
-
+        WallService wallService = new WallService(doc);
+        List<Wall> listWall = wallService.CreateWallFromColumns(columns, wallConfig, baseLevel, topLevel, out List<(XYZ startPoint, XYZ endPoint)> listSegment);
+        this.listSegment = listSegment;
+        return listWall;
     }
 
-    private void CreateBeamFromService()
+    private void CreateBeamFromService(Document doc, BeamConfig beamConfig, Level level)
     {
-        
+        if (this.listSegment.Count() < 2)
+        {
+            throw new InvalidOperationException("Không đủ số lượng cột để tạo dầm");
+        }
+        BeamService beamService = new BeamService(doc);
+
+        for (int i = 0; i < listSegment.Count; i++)
+        {
+            beamService.CreateBeam(beamConfig, level, listSegment[i].startPoint, listSegment[i].endPoint);
+        }
     }
 }
