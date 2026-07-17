@@ -61,7 +61,7 @@ public class HouseBuilder
 
     //create grid levels — giữ map tên→Level để các bước sau reuse
     private Dictionary<string, Level> CreateLevels()
-    {
+    { 
         List<LevelConfig> levelConfigs = new List<LevelConfig> {
             new LevelConfig("Level 1", 0),
             new LevelConfig("Level 2", 3600),

@@ -3,6 +3,7 @@ using Autodesk.Revit.DB.Structure;
 using Autodesk.Revit.UI;
 using BuildHouse.Utils;
 using Simpleform.buidhouse.models;
+using Simpleform.buidhouse.utils;
 using Simpleform.drawWallRefactor;
 
 namespace Simpleform.buidhouse.services;
@@ -73,11 +74,14 @@ public class BeamService
 
         Line line = Line.CreateBound(startPoint, endPoint);
 
-        return _doc.Create.NewFamilyInstance(
+        var newBeam =  _doc.Create.NewFamilyInstance(
             line,
             beamTypeSymbol,
             level,
             StructuralType.Beam);
+
+        newBeam.SetMarkAndComment(config.Mark, config.Comment);
+        return newBeam;
     }
 
     private static void SetParameterIfExists(Element element, string parameterName, double value)
