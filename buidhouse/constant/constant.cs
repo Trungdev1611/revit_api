@@ -9,6 +9,6 @@ public static class Constant
         { "column-square", Path.Combine("public", "families", "Columns", "Concrete_Square.rfa") },
         { "column-rectangular", Path.Combine("public", "families", "Columns", "Concrete-Rectangular-Column.rfa") },
         { "beam-square", Path.Combine("public", "families", "Beams", "Concrete-Square-Beam.rfa") },
-        { "beam-rectangular", Path.Combine("public", "families", "Beams", "Concrete-Rectangular-Beam.rfa") },
+        { "beam-rectangular", Path.Combine("public", "families", "Beams", "Concrete - Rectangular Beam.rfa") },
     };
 }

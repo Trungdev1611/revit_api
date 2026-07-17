@@ -22,6 +22,8 @@ public static class LevelService
             .OfClass(typeof(Level))
             .Cast<Level>()
             .ToDictionary(level => level.Name, level => level, StringComparer.OrdinalIgnoreCase);
+        
+  
 
         foreach (LevelConfig levelConfig in levelConfigs)
         {
@@ -35,6 +37,8 @@ public static class LevelService
             }
         }
 
+      string levelsLogString = string.Join(", ", levels.Select(kv => $"{kv.Key} ({kv.Value.Elevation} ft)"));
+        AppLog.Information("Levels list:: {0}", levelsLogString);
         return levels;
     }
 }

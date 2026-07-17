@@ -10,8 +10,8 @@ public static class AppLog
     private static bool _initialized;
 
     // Dev: log trong source để xem nhanh trên Cursor. Đổi path khi clone máy khác.
-    private static readonly string LogDirectory =
-        @"d:\source\Trungdev1611\revit_api\logs";
+    private static readonly string LogDirectory = @"D:\revit\RevitAPI\buidhouse\utils\logs";
+        // @"d:\source\Trungdev1611\revit_api\logs";
 
     public static string LogPath =>
         Path.Combine(

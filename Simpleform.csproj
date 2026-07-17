@@ -38,8 +38,8 @@
             <FamilyFiles Include="$(ProjectDir)buidhouse\public\families\**\*.*" /> 
         </ItemGroup>
 
-        <!-- FamilyFiles là tên của item group được tạo ở trên Move family files to public folder sau khi build-->
-        <Move SourceFiles="@(FamilyFiles)" DestinationFolder="$(TargetDir)public\families\%(RecursiveDir)" Condition="'@(FamilyFiles)' != ''" />
+        <!-- Copy (không Move) để giữ file .rfa trong buidhouse\public\families -->
+        <Copy SourceFiles="@(FamilyFiles)" DestinationFolder="$(TargetDir)public\families\%(RecursiveDir)" Condition="'@(FamilyFiles)' != ''" />
 
         <!-- copy file buildhouse.addin từ thư mục buidhouse của project vào thư mục đầu ra của project-->
         <Copy SourceFiles="$(ProjectDir)buidhouse\buildhouse.addin" DestinationFolder="$(TargetDir)" />

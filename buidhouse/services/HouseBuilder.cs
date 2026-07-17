@@ -11,7 +11,7 @@ public class HouseBuilder
 {
     private readonly Document _doc;
     private readonly FloorService _floorService;
-    private List<(XYZ startPoint, XYZ endPoint)> listSegment;
+    private List<(XYZ startPoint, XYZ endPoint)> listSegment = new();
 
     public HouseBuilder(Document doc)
     {
@@ -45,11 +45,11 @@ public class HouseBuilder
             return false;
         }
 
-        CreateColumns(gridService, level1, level2);
-        AppLog.Information("Columns step done");
+        List<Element> columns = CreateColumns(gridService, level1, level2);
+        AppLog.Information("Columns step done: {0} columns", columns.Count);
         _doc.Regenerate();
         var wallConfig = new WallConfig(220);
-        CreateWallFromService(_doc, wallConfig, level1, level2);
+        CreateWallFromService(_doc, wallConfig, level1, level2, columns);
 
 
         var beamConfig = new BeamConfig(220, 400);
@@ -134,8 +134,8 @@ public class HouseBuilder
         return true;
     }
 
-    //create columns
-    private void CreateColumns(GridService gridService, Level bottomLevel, Level topLevel)
+    //create columns — trả về đúng cột vừa tạo (không phụ thuộc Active View)
+    private List<Element> CreateColumns(GridService gridService, Level bottomLevel, Level topLevel)
     {
         ElementId levelId = bottomLevel.Id;
         ElementId level2Id = topLevel.Id;
@@ -145,57 +145,91 @@ public class HouseBuilder
             new ColumnConfig("220x220", levelId, level2Id),
             new ColumnConfig("220x220", levelId, level2Id),
             new ColumnConfig("220x220", levelId, level2Id),
-
         };
         ColumnService columnService = new ColumnService();
 
-        //lấy tọa độ 4 điểm của cột
         double halfColumnWidth = 220 / 2; //cột 220x220
         (double left, double right, double bottom, double top) = gridService.getFootprintBounds(-halfColumnWidth);
 
-        //tọa độ cột
         XYZ col1Xyz = new XYZ(left, bottom, bottomLevel.Elevation);
         XYZ col2Xyz = new XYZ(right, bottom, bottomLevel.Elevation);
         XYZ col3Xyz = new XYZ(left, top, bottomLevel.Elevation);
         XYZ col4Xyz = new XYZ(right, top, bottomLevel.Elevation);
 
-        columnService.CreateColumn(_doc, columnConfigs[0], col1Xyz);
-        columnService.CreateColumn(_doc, columnConfigs[1], col2Xyz);
-        columnService.CreateColumn(_doc, columnConfigs[2], col3Xyz);
-        columnService.CreateColumn(_doc, columnConfigs[3], col4Xyz);
+        XYZ[] locations = { col1Xyz, col2Xyz, col3Xyz, col4Xyz };
+        var created = new List<Element>();
+        for (int i = 0; i < columnConfigs.Count; i++)
+        {
+            FamilyInstance? column = columnService.CreateColumn(_doc, columnConfigs[i], locations[i]);
+            if (column != null)
+            {
+                created.Add(column);
+            }
+        }
+
+        if (created.Count < 2)
+        {
+            throw new InvalidOperationException(
+                $"Chỉ tạo được {created.Count} cột (cần >= 2). Kiểm tra load family cột.");
+        }
+
+        return created;
     }
 
-    private List<Wall> CreateWallFromService(Document doc, WallConfig wallConfig, Level baseLevel, Level topLevel)
+    private List<Wall> CreateWallFromService(
+        Document doc,
+        WallConfig wallConfig,
+        Level baseLevel,
+        Level topLevel,
+        List<Element> columns)
     {
-
-        //  Quét toàn bộ Cột kết cấu trong View hiện hành
-        List<Element> columns = new FilteredElementCollector(doc, doc.ActiveView.Id)
-        .OfCategory(BuiltInCategory.OST_StructuralColumns)
-        .WhereElementIsNotElementType()
-        .ToList();
-
-        if (columns.Count < 2)
+        if (columns == null || columns.Count < 2)
         {
-            TaskDialog.Show("Thông báo", "Không đủ số lượng cột trên mặt bằng này để vẽ tường");
-            return null;
+            throw new InvalidOperationException("Không đủ cột để vẽ tường.");
         }
+
         WallService wallService = new WallService(doc);
-        List<Wall> listWall = wallService.CreateWallFromColumns(columns, wallConfig, baseLevel, topLevel, out List<(XYZ startPoint, XYZ endPoint)> listSegment);
-        this.listSegment = listSegment;
+        List<Wall> listWall = wallService.CreateWallFromColumns(
+            columns,
+            wallConfig,
+            baseLevel,
+            topLevel,
+            out List<(XYZ startPoint, XYZ endPoint)> segments);
+        this.listSegment = segments;
+        AppLog.Information("Walls done: {0} walls, {1} segments for beams",
+            listWall.Count, this.listSegment.Count);
         return listWall;
     }
 
     private void CreateBeamFromService(Document doc, BeamConfig beamConfig, Level level)
     {
-        if (this.listSegment.Count() < 2)
+        if (this.listSegment == null || this.listSegment.Count < 1)
         {
-            throw new InvalidOperationException("Không đủ số lượng cột để tạo dầm");
+            throw new InvalidOperationException("Không đủ segment tường để tạo dầm");
         }
-        BeamService beamService = new BeamService(doc);
 
+        BeamService beamService = new BeamService(doc);
+        int created = 0;
         for (int i = 0; i < listSegment.Count; i++)
         {
-            beamService.CreateBeam(beamConfig, level, listSegment[i].startPoint, listSegment[i].endPoint);
+            FamilyInstance? beam = beamService.CreateBeam(
+                beamConfig,
+                level,
+                listSegment[i].startPoint,
+                listSegment[i].endPoint);
+            if (beam != null)
+            {
+                created++;
+            }
+        }
+
+        AppLog.Information("Beam finished: created {0}/{1} at level '{2}' elev={3:F3}",
+            created, listSegment.Count, level.Name, level.Elevation);
+
+        if (created == 0)
+        {
+            throw new InvalidOperationException("Không tạo được dầm nào.");
         }
     }
 }
+
