@@ -1,0 +1,31 @@
+<Window x:Class="Simpleform.buidhouse.Views.MainView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Revit House Generator" Height="350" Width="400"
+        WindowStartupLocation="CenterScreen" Topmost="True">
+    
+    <Grid Margin="15">
+        <StackPanel>
+            <!--KÍCH THƯỚC NHÀ-->
+            <TextBlock Text="Cấu hình kích thước nhà" FontSize="24" FontWeight="Bold" Margin="0,0,0,15"/>
+
+            <TextBlock Text="Chiều rộng nhà (mm):" Margin="0,5,0,2"/>
+            <!-- Binding trực tiếp vào DTO Column/Grid của bạn -->
+            <TextBox Text="{Binding Grid.WidthHouse, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+
+            <TextBlock Text="Chiều dài nhà (mm):" Margin="0,10,0,2"/>
+            <TextBox Text="{Binding Grid.LengthHouse, UpdateSourceTrigger=PropertyChanged}" Padding="5"/>
+
+            <!--Cột-->
+            <TextBlock Text="Cấu hình cột" FontSize="24" FontWeight="Bold" Margin="0,0,0,15"/>
+            <TextBlock Text="Chọn loại cột (mm):" Margin="0,5,0,2"/>
+            
+
+
+            <Button Content="TẠO MÔ HÌNH REVIT" 
+                    Margin="0,25,0,0" Height="40" 
+                    FontWeight="Bold"
+                    Click="OnBuildButtonClick"/>
+        </StackPanel>
+    </Grid>
+</Window>

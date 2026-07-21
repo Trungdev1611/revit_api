@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows.Controls;
+using Autodesk.Revit.UI;
 using Simpleform.buidhouse.dtos;
 using Simpleform.buidhouse.utils;
 
@@ -44,6 +45,12 @@ public class HouseConfig
 
     public static HouseConfig CreateDefault() => new()
     {
+        //tương đương với ColumnSectionConfig temp = new ColumnSectionConfig();
+        // temp.WidthHouse = 5000;
+        // temp.WidthHouse = 6000;
+        // temp.WidthHouse = 2000;
+        Grid = new GridSectionConfig {WidthHouse = 5000, LengthHouse = 6000, gridLineExtension = 2000}, 
+            
         Levels = new List<LevelConfig>
         {
             new("Level 1", 0),
@@ -103,7 +110,8 @@ public class HouseConfig
                 {
                     loaded.Normalize();
                     AppLog.Information("HouseConfig loaded from {0}", path);
-                    AppLog.Information("HouseConfig loaded: {0}", loaded);
+                    TaskDialog.Show("Thông báo", "Loaded file from json file");
+                    
                     return loaded;
                 }
             }
@@ -117,6 +125,7 @@ public class HouseConfig
             AppLog.Warning("HouseConfig load failed ({0}), using Default: {1}", path, ex.Message);
         }
 
+        TaskDialog.Show("Thông báo", "Sử dụng giá trị default vì không load được file");
         return CreateDefault();
     }
 

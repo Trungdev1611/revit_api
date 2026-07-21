@@ -1,4 +1,9 @@
 {
+  "Grid": {
+    "WidthHouse": 5000,
+    "LengthHouse": 6000,
+    "gridLineExtension": 2000
+  },
   "BaseLevelName": "Level 1",
   "StructuralTopLevelName": "Level 2",
   "Levels": [
