@@ -1,0 +1,39 @@
+{
+  "BaseLevelName": "Level 1",
+  "StructuralTopLevelName": "Level 2",
+  "Levels": [
+    { "Name": "Level 1", "Elevation": 0 },
+    { "Name": "Level 2", "Elevation": 3600 },
+    { "Name": "Level 3", "Elevation": 6900 }
+  ],
+  "Column": {
+    "WidthMm": 220,
+    "FamilyName": "Concrete Square",
+    "Shape": "square",
+    "Count": 4,
+    "BaseOffsetMm": 0,
+    "TopOffsetMm": 0
+  },
+  "Wall": {
+    "ThicknessMm": 220,
+    "IsStructural": true
+  },
+  "Beam": {
+    "WidthMm": 220,
+    "HeightMm": 400,
+    "Mark": "220x400-Mark",
+    "Comment": "comment test1111"
+  },
+  "Floor": {
+    "TypeName": "Betong san tang 1",
+    "ThicknessMm": 100,
+    "LevelName": "Level 1"
+  },
+  "Blinding": {
+    "TypeName": "Bê tông lót 100mm",
+    "ThicknessMm": 100,
+    "EdgeExtensionMm": 100,
+    "OffsetFromLevelMm": -150,
+    "LevelName": "Level 1"
+  }
+}

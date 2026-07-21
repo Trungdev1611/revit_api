@@ -1,6 +1,7 @@
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using Simpleform.buidhouse.models;
 using Simpleform.buidhouse.services;
 using Simpleform.buidhouse.utils;
 using Simpleform.drawWallRefactor;
@@ -34,7 +35,8 @@ public class BuildHouseCommand : BaseClass
                 t.Start();
                 AppLog.Information("Transaction started");
 
-                HouseBuilder houseBuilder = new HouseBuilder(doc);
+                HouseConfig houseConfig = HouseConfig.LoadOrDefault();
+                HouseBuilder houseBuilder = new HouseBuilder(doc, houseConfig);
                 if (!houseBuilder.Build(centerPoint, out message))
                 {
                     AppLog.Warning("HouseBuilder.Build failed: {0}", message);

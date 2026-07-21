@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RevitAddIns>
-  <AddIn Type="Command">
+  <AddIn Type="Application">
     <Name>Build House Automation Tool</Name>
-
-    <!-- nơi chỉ định chỗ file dll được tìm kiếm khi Revit khởi động - bắt đầu tính từ roo directory sau build làm gốc-->
-    <Assembly>Simpleform.dll</Assembly>
-    <FullClassName>Simpleform.buidhouse.commands.BuildHouseCommand</FullClassName>
+    <!-- Đường dẫn tương đối so với thư mục chứa file .addin này -->
+    <Assembly>buildHouseFolder\Simpleform.dll</Assembly>
+    <FullClassName>Simpleform.buidhouse.App</FullClassName>
     <ClientId>a1b2c3d4-e5f6-7a8b-9c0d-112233445566</ClientId>
     <VendorId>DDEV</VendorId>
     <VendorDescription>Automated House Builder by Trung</VendorDescription>

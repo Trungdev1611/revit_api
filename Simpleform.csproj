@@ -2,9 +2,12 @@
 
     <PropertyGroup>
         <TargetFramework>net48</TargetFramework>
+        <UseWPF>true</UseWPF>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>10</LangVersion>
+        <!-- Thư mục gom DLL + public; .addin nằm cạnh folder này -->
+        <BuildHouseFolderName>buildHouseFolder</BuildHouseFolderName>
     </PropertyGroup>
 
     <ItemGroup>
@@ -16,38 +19,61 @@
         <HintPath>$(RevitApiUiDll)</HintPath>
         <Private>False</Private>
       </Reference>
-
-      <!-- <None Update="buidhouse\public\families\**\*">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None> -->
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    </ItemGroup>
+
+    <!--
+      Layout sau build (copy nguyên cụm này vào %AppData%\Autodesk\Revit\Addins\2023\):
+
+      bin\Release\net48\
+        buildhouse.addin
+        buildHouseFolder\
+          Simpleform.dll
+          Simpleform.pdb
+          public\families\...
+    -->
     <!-- TargetDir là biến có sẵn vị trị thư mục đầu ra của project .dll-->
-
+    <!-- $(TargetPath): Đường dẫn tuyệt đối Thẳng đến file đầu ra (Nó chính là gộp của TargetDir + TargetName + đuôi .dll). -->
+    <!-- $(TargetName): Chỉ lấy duy nhất Tên của file đầu ra (không bao gồm đuôi mở rộng). -->
     <Target Name="GomFileThuongMai" AfterTargets="Build">
-        <!-- <MakeDir Directories="$(TargetDir)buildhouse_Files" />
-        <MakeDir Directories="$(TargetDir)buildhouse_Files\families" /> -->
+        <PropertyGroup>
+            <_BundleDir>$(TargetDir)$(BuildHouseFolderName)\</_BundleDir>
+        </PropertyGroup>
 
-        
-        <!-- <Move SourceFiles="$(TargetPath)" DestinationFolder="$(TargetDir)buildhouse_Files" /> -->
+        <MakeDir Directories="$(_BundleDir)" />
 
+        <!-- Chuyển DLL + PDB vào buildHouseFolder (không để lại ở root net48) -->
+        <Move SourceFiles="$(TargetPath)" DestinationFolder="$(_BundleDir)" />
+        <Move
+            SourceFiles="$(TargetDir)$(TargetName).pdb"
+            DestinationFolder="$(_BundleDir)"
+            Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+
+        <!-- Families cạnh DLL -->
         <ItemGroup>
-        <!-- lấy tất cả các file trong thư mục families -->
-        <!-- ProjectDir là biến có sẵn vị trị thư mục project chứa file csproj-->
-        <!-- buidhouse\public\families\**\*.* là đường dẫn tới thư mục families trong thư mục public của buidhouse-->
-            <FamilyFiles Include="$(ProjectDir)buidhouse\public\families\**\*.*" /> 
+            <FamilyFiles Include="$(ProjectDir)buidhouse\public\families\**\*.*" />
         </ItemGroup>
+        <Copy
+            SourceFiles="@(FamilyFiles)"
+            DestinationFolder="$(_BundleDir)public\families\%(RecursiveDir)"
+            Condition="'@(FamilyFiles)' != ''" />
 
-        <!-- Copy (không Move) để giữ file .rfa trong buidhouse\public\families -->
-        <Copy SourceFiles="@(FamilyFiles)" DestinationFolder="$(TargetDir)public\families\%(RecursiveDir)" Condition="'@(FamilyFiles)' != ''" />
+        <!-- house.json cạnh DLL — chỉnh số liệu nhà không cần rebuild logic -->
+        <Copy
+            SourceFiles="$(ProjectDir)buidhouse\house.json"
+            DestinationFolder="$(_BundleDir)"
+            Condition="Exists('$(ProjectDir)buidhouse\house.json')" />
 
-        <!-- copy file buildhouse.addin từ thư mục buidhouse của project vào thư mục đầu ra của project-->
-        <Copy SourceFiles="$(ProjectDir)buidhouse\buildhouse.addin" DestinationFolder="$(TargetDir)" />
+        <!-- Xóa public/ cũ ở root nếu còn từ layout trước -->
+        <RemoveDir Directories="$(TargetDir)public" Condition="Exists('$(TargetDir)public')" />
 
-        <!-- xóa thư mục buidhouse trong thư mục đầu ra của project-->
-        <!-- <RemoveDir Directories="$(TargetDir)buidhouse" Condition="Exists('$(TargetDir)buidhouse')" /> -->
+        <!-- .addin nằm ngoài folder (cạnh buildHouseFolder) -->
+        <Copy
+            SourceFiles="$(ProjectDir)buidhouse\buildhouse.addin"
+            DestinationFolder="$(TargetDir)" />
     </Target>
-
-
 
 </Project>

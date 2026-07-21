@@ -11,12 +11,15 @@ public class HouseBuilder
 {
     private readonly Document _doc;
     private readonly FloorService _floorService;
+    private readonly HouseConfig _config;
     private List<(XYZ startPoint, XYZ endPoint)> listSegment = new();
 
-    public HouseBuilder(Document doc)
+    public HouseBuilder(Document doc, HouseConfig? config = null)
     {
         _doc = doc;
         _floorService = new FloorService(doc);
+        _config = config ?? HouseConfig.CreateDefault();
+        _config.Normalize();
     }
 
     public bool Build(XYZ centerPoint, out string message)
@@ -30,8 +33,8 @@ public class HouseBuilder
         Dictionary<string, Level> levels = CreateLevels();
         AppLog.Information("Levels created/updated");
 
-        Level level1 = RequireLevel(levels, "Level 1");
-        Level level2 = RequireLevel(levels, "Level 2");
+        Level level1 = RequireLevel(levels, _config.BaseLevelName);
+        Level level2 = RequireLevel(levels, _config.StructuralTopLevelName);
 
         if (!CreateBlindingFloor(gridService, level1, out message))
         {
@@ -48,26 +51,18 @@ public class HouseBuilder
         List<Element> columns = CreateColumns(gridService, level1, level2);
         AppLog.Information("Columns step done: {0} columns", columns.Count);
         _doc.Regenerate();
-        var wallConfig = new WallConfig(220);
-        CreateWallFromService(_doc, wallConfig, level1, level2, columns);
 
+        CreateWallFromService(_doc, _config.ToWallConfig(), level1, level2, columns);
 
-        var beamConfig = new BeamConfig(220, 400);
-        CreateBeamFromService(_doc, beamConfig, level2); //level2 là đỉnh dầm truyền vào vì dầm luôn ăn theo sàn
+        CreateBeamFromService(_doc, _config.ToBeamConfig(), level2);
         AppLog.Information("Beam finished");
         AppLog.Information("HouseBuilder.Build finished");
         return true;
     }
 
-    //create grid levels — giữ map tên→Level để các bước sau reuse
     private Dictionary<string, Level> CreateLevels()
     {
-        List<LevelConfig> levelConfigs = new List<LevelConfig> {
-            new LevelConfig("Level 1", 0),
-            new LevelConfig("Level 2", 3600),
-            new LevelConfig("Level 3", 6900),
-        };
-        return LevelService.CreateOrUpdateLevel(_doc, levelConfigs);
+        return LevelService.CreateOrUpdateLevel(_doc, _config.Levels);
     }
 
     private static Level RequireLevel(Dictionary<string, Level> levels, string name)
@@ -79,7 +74,6 @@ public class HouseBuilder
         return level;
     }
 
-    //create blinding floor
     private bool CreateBlindingFloor(
         GridService gridService,
         Level level1,
@@ -87,7 +81,7 @@ public class HouseBuilder
     {
         message = string.Empty;
 
-        BlindingConcreteConfig blindingConcreteConfig = new BlindingConcreteConfig();
+        BlindingConcreteConfig blindingConcreteConfig = _config.ToBlindingConfig();
         ElementId blindingFloorTypeId = _floorService.getFloorTypeIdOrCreateNew(blindingConcreteConfig);
         if (blindingFloorTypeId == null)
         {
@@ -101,26 +95,23 @@ public class HouseBuilder
             blindingFloorTypeId,
             level1.Id);
 
-        //offset floor to offsetFromLevelTarget = -150mm
-        bool isSuccessOffset = _floorService.setOffsetFromInInitialPosition(floor, blindingConcreteConfig.offsetFromLevelTarget);
+        bool isSuccessOffset = _floorService.setOffsetFromInInitialPosition(
+            floor,
+            blindingConcreteConfig.offsetFromLevelTarget);
         if (!isSuccessOffset)
         {
-            message = "Không thể set offset từ level1 -150mm!";
+            message = $"Không thể set offset từ {_config.BaseLevelName} {blindingConcreteConfig.offsetFromLevelTarget}!";
             return false;
         }
 
         return true;
     }
 
-    //create floor
     private bool CreateFloor(GridService gridService, ElementId levelId, out string message)
     {
         message = string.Empty;
 
-        FloorConfig floorConfig = new FloorConfig(
-            "Betong san tang 1",
-            RevitUtil.convertToMeter(100),
-            "Level 1");
+        FloorConfig floorConfig = _config.ToFloorConfig();
 
         ElementId floorTypeId = _floorService.getFloorTypeIdOrCreateNew(floorConfig);
         if (floorTypeId == null)
@@ -129,38 +120,34 @@ public class HouseBuilder
             return false;
         }
 
-        CurveLoop floorLoop = gridService.createFootprintLoop(0); //không có edge extension
+        CurveLoop floorLoop = gridService.createFootprintLoop(0);
         _floorService.createFloor(new List<CurveLoop> { floorLoop }, floorTypeId, levelId);
         return true;
     }
 
-    //create columns — trả về đúng cột vừa tạo (không phụ thuộc Active View)
     private List<Element> CreateColumns(GridService gridService, Level bottomLevel, Level topLevel)
     {
         ElementId levelId = bottomLevel.Id;
         ElementId level2Id = topLevel.Id;
 
-        var columnConfigs = new List<ColumnConfig> {
-            new ColumnConfig("220x220", levelId, level2Id),
-            new ColumnConfig("220x220", levelId, level2Id),
-            new ColumnConfig("220x220", levelId, level2Id),
-            new ColumnConfig("220x220", levelId, level2Id),
-        };
         ColumnService columnService = new ColumnService();
 
-        double halfColumnWidth = 220 / 2; //cột 220x220
+        double halfColumnWidth = _config.Column.HalfWidthMm;
         (double left, double right, double bottom, double top) = gridService.getFootprintBounds(-halfColumnWidth);
 
-        XYZ col1Xyz = new XYZ(left, bottom, bottomLevel.Elevation);
-        XYZ col2Xyz = new XYZ(right, bottom, bottomLevel.Elevation);
-        XYZ col3Xyz = new XYZ(left, top, bottomLevel.Elevation);
-        XYZ col4Xyz = new XYZ(right, top, bottomLevel.Elevation);
-
-        XYZ[] locations = { col1Xyz, col2Xyz, col3Xyz, col4Xyz };
-        var created = new List<Element>();
-        for (int i = 0; i < columnConfigs.Count; i++)
+        XYZ[] locations =
         {
-            FamilyInstance? column = columnService.CreateColumn(_doc, columnConfigs[i], locations[i]);
+            new XYZ(left, bottom, bottomLevel.Elevation),
+            new XYZ(right, bottom, bottomLevel.Elevation),
+            new XYZ(left, top, bottomLevel.Elevation),
+            new XYZ(right, top, bottomLevel.Elevation),
+        };
+
+        var created = new List<Element>();
+        for (int i = 0; i < locations.Length; i++)
+        {
+            ColumnConfig columnConfig = _config.ToColumnConfig(levelId, level2Id);
+            FamilyInstance? column = columnService.CreateColumn(_doc, columnConfig, locations[i]);
             if (column != null)
             {
                 created.Add(column);
@@ -232,4 +219,3 @@ public class HouseBuilder
         }
     }
 }
-

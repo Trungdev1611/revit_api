@@ -4,6 +4,7 @@ using Autodesk.Revit.UI;
 using BuildHouse.Utils;
 using Simpleform.buidhouse.models;
 using Simpleform.buidhouse.utils;
+using Simpleform.buidhouse.utils;
 using Simpleform.drawWallRefactor;
 
 namespace Simpleform.buidhouse.services;
@@ -95,7 +96,7 @@ public class BeamService
         }
 
         Line line = Line.CreateBound(start, end);
-        FamilyInstance beam = _doc.Create.NewFamilyInstance(
+        FamilyInstance newBeam = _doc.Create.NewFamilyInstance(
             line,
             beamTypeSymbol,
             level,
@@ -103,12 +104,14 @@ public class BeamService
 
         AppLog.Information(
             "Beam created id={0} type={1} z={2:F3} len={3:F3}",
-            beam?.Id.IntegerValue,
+            newBeam?.Id.IntegerValue,
             beamTypeSymbol.Name,
             level.Elevation,
             start.DistanceTo(end));
 
-        return beam;
+
+        newBeam?.SetMarkAndComment(config.Mark, config.Comment);
+        return newBeam;
     }
 
     private static void SetParameterIfExists(Element element, string parameterName, double valueInternal)
