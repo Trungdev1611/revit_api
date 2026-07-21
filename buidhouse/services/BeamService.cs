@@ -101,7 +101,7 @@ public class BeamService
 
         AppLog.Information(
             "Beam created id={0} type={1} z={2:F3} len={3:F3}",
-            newBeam?.Id.Value,
+            newBeam?.Id,
             beamTypeSymbol.Name,
             level.Elevation,
             start.DistanceTo(end));
