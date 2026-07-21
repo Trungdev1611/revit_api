@@ -4,7 +4,6 @@ using Autodesk.Revit.UI;
 using BuildHouse.Utils;
 using Simpleform.buidhouse.models;
 using Simpleform.buidhouse.utils;
-using Simpleform.buidhouse.utils;
 using Simpleform.drawWallRefactor;
 
 namespace Simpleform.buidhouse.services;
@@ -24,12 +23,10 @@ public class BeamService
     {
         bool isSquare = Math.Abs(config.Width - config.Height) < 1e-6;
         string familyName = isSquare ? BeamFamilyNameSquare : BeamFamilyNameRectangle;
-        // Đổi suffix để tránh type cũ bị set nhầm feet (220ft x 400ft)
-        string typeBeamName = $"{config.Width}x{config.Height}";
+        string typeBeamName = string.IsNullOrWhiteSpace(config.TypeName)
+            ? $"{config.Width:F4}x{config.Height:F4}"
+            : config.TypeName;
         string familyKey = isSquare ? "beam-square" : "beam-rectangular";
-
-        double bInternal = RevitUtil.convertToMeter(config.Width);
-        double hInternal = RevitUtil.convertToMeter(config.Height);
 
         Family? familyloaded = FamilyUtilClass.GetFamilyIfExistedOrloadNew(_doc, familyName, familyKey);
         if (familyloaded == null)
@@ -74,12 +71,12 @@ public class BeamService
             }
         }
 
-        // Luôn set lại kích thước (mm→feet) — tránh type cũ bị set nhầm đơn vị
-        SetParameterIfExists(beamTypeSymbol, "b", bInternal);
-        SetParameterIfExists(beamTypeSymbol, "h", hInternal);
+        // Width/Height đã là internal feet (convert ở BeamSectionConfig.ToConfig)
+        SetParameterIfExists(beamTypeSymbol, "b", config.Width);
+        SetParameterIfExists(beamTypeSymbol, "h", config.Height);
         AppLog.Information(
-            "Beam type '{0}' b={1:F4}ft h={2:F4}ft (from {3}x{4}mm)",
-            beamTypeSymbol.Name, bInternal, hInternal, config.Width, config.Height);
+            "Beam type '{0}' b={1:F4}ft h={2:F4}ft (typeName={3})",
+            beamTypeSymbol.Name, config.Width, config.Height, typeBeamName);
 
         if (!beamTypeSymbol.IsActive)
         {
@@ -104,7 +101,7 @@ public class BeamService
 
         AppLog.Information(
             "Beam created id={0} type={1} z={2:F3} len={3:F3}",
-            newBeam?.Id.IntegerValue,
+            newBeam?.Id.Value,
             beamTypeSymbol.Name,
             level.Elevation,
             start.DistanceTo(end));

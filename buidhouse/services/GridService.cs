@@ -1,4 +1,5 @@
 using Autodesk.Revit.DB;
+using Simpleform.buidhouse.models;
 using Simpleform.buidhouse.utils;
 
 namespace Simpleform.buidhouse.services;
@@ -8,56 +9,60 @@ public class GridService
     private readonly Document _doc;
     private readonly XYZ _center;
 
-    private readonly double halfW = RevitUtil.convertToMeter(5000) / 2;
-    private readonly double halfL = RevitUtil.convertToMeter(6000) / 2;
-    private readonly double gridLineExtension = RevitUtil.convertToMeter(2000);
+    private GridConfig _gridConfig;
 
-    public GridService(XYZ userclickPoint, Document doc)
+    // private readonly double halfW = RevitUtil.ConvertToFeet(5000) / 2;
+    // private readonly double halfL = RevitUtil.ConvertToFeet(6000) / 2;
+    // private readonly double gridLineExtension = RevitUtil.ConvertToFeet(2000);
+
+    public GridService(XYZ userclickPoint, Document doc, GridConfig gridConfig)
     {
         _center = userclickPoint;
         _doc = doc;
+        this._gridConfig = gridConfig;
     }
 
-    public void createGrids()
+    public void CreateGrids()
     {
         var (left, right, bottom, top) = getFootprintBounds();
-
-        createGrid(
-            new XYZ(left, bottom - gridLineExtension, _center.Z),
-            new XYZ(left, top + gridLineExtension, _center.Z),
+        var gridLineExtensionInFeet = _gridConfig.gridLineExtension;
+        CreateGrid(
+            new XYZ(left, bottom - gridLineExtensionInFeet, _center.Z),
+            new XYZ(left, top + gridLineExtensionInFeet, _center.Z),
             "1");
-        createGrid(
-            new XYZ(right, bottom - gridLineExtension, _center.Z),
-            new XYZ(right, top + gridLineExtension, _center.Z),
+        CreateGrid(
+            new XYZ(right, bottom - gridLineExtensionInFeet, _center.Z),
+            new XYZ(right, top + gridLineExtensionInFeet, _center.Z),
             "2");
-        createGrid(
-            new XYZ(left - gridLineExtension, bottom, _center.Z),
-            new XYZ(right + gridLineExtension, bottom, _center.Z),
+        CreateGrid(
+            new XYZ(left - gridLineExtensionInFeet, bottom, _center.Z),
+            new XYZ(right + gridLineExtensionInFeet, bottom, _center.Z),
             "A");
-        createGrid(
-            new XYZ(left - gridLineExtension, top, _center.Z),
-            new XYZ(right + gridLineExtension, top, _center.Z),
+        CreateGrid(
+            new XYZ(left - gridLineExtensionInFeet, top, _center.Z),
+            new XYZ(right + gridLineExtensionInFeet, top, _center.Z),
             "B");
     }
 
-    public CurveLoop createFootprintLoop(double edgeExtensionMm = 0)
+    /// <param name="edgeExtension">Mở rộng mép footprint — Revit internal units (feet).</param>
+    public CurveLoop createFootprintLoop(double edgeExtension = 0)
     {
-        var (left, right, bottom, top) = getFootprintBounds(edgeExtensionMm);
-        return RevitUtil.createRectangleLoop(left, right, bottom, top, _center.Z);
+        var (left, right, bottom, top) = getFootprintBounds(edgeExtension);
+        return RevitUtil.CreateRectangleLoop(left, right, bottom, top, _center.Z);
     }
 
-    public (double left, double right, double bottom, double top) getFootprintBounds(double edgeExtensionMm = 0)
+    /// <param name="edgeExtension">Mở rộng mép footprint — Revit internal units (feet).</param>
+    public (double left, double right, double bottom, double top) getFootprintBounds(double edgeExtension = 0)
     {
-        double extension = RevitUtil.convertToMeter(edgeExtensionMm);
         return (
-            _center.X - halfW - extension,
-            _center.X + halfW + extension,
-            _center.Y - halfL - extension,
-            _center.Y + halfL + extension
+            _center.X - _gridConfig.WidthHouse/2 - edgeExtension,
+            _center.X + _gridConfig.WidthHouse/2 + edgeExtension,
+            _center.Y - _gridConfig.LengthHouse/2 - edgeExtension,
+            _center.Y + _gridConfig.LengthHouse/2 + edgeExtension
         );
     }
 
-    private void createGrid(XYZ start, XYZ end, string name)
+    private void CreateGrid(XYZ start, XYZ end, string name)
     {
         Line line = Line.CreateBound(start, end);
         Grid grid = Grid.Create(_doc, line);

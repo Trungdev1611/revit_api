@@ -8,7 +8,7 @@ public static class LevelService
 {
     public static Level CreateNewLevel(Document doc, double elevationMm, string levelName)
     {
-        Level newLevel = Level.Create(doc, RevitUtil.convertToMeter(elevationMm));
+        Level newLevel = Level.Create(doc, RevitUtil.ConvertToFeet(elevationMm));
         newLevel.Name = levelName;
         return newLevel;
     }
@@ -29,7 +29,7 @@ public static class LevelService
         {
             if (levels.TryGetValue(levelConfig.Name, out Level? existing))
             {
-                existing.Elevation = RevitUtil.convertToMeter(levelConfig.Elevation);
+                existing.Elevation = RevitUtil.ConvertToFeet(levelConfig.Elevation);
             }
             else
             {

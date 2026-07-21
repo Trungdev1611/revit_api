@@ -1,7 +1,8 @@
 namespace Simpleform.buidhouse.models;
 
+/// <summary>Runtime config tường — Thickness là Revit internal units (feet).</summary>
 public record WallConfig(
-    // string WallFamilyName,// không cần thiết vì wall là systemfamily => luôn có family sẵn trong project
-    double ThicknessWall, //mm
+    double Thickness,
+    string TypeName,
     bool IsStructural = true
 );

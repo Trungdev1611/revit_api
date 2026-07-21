@@ -1,3 +1,4 @@
+using System.IO;
 using System.Reflection;
 using Autodesk.Revit.DB;
 
@@ -5,19 +6,19 @@ namespace Simpleform.buidhouse.utils;
 
 public static class RevitUtil
 {
-     public static double convertToMeter(double numberConvertInMilliMeter)
+     public static double ConvertToFeet(double numberConvertInMilliMeter)
      {
          return UnitUtils.ConvertToInternalUnits(numberConvertInMilliMeter, UnitTypeId.Millimeters);
      }
 
-     public static CurveLoop createRectangleLoop(double left, double right, double bottom, double top, double z)
+     public static CurveLoop CreateRectangleLoop(double left, double right, double bottom, double top, double z)
      {
-         XYZ bottomLeft = new XYZ(left, bottom, z);
-         XYZ bottomRight = new XYZ(right, bottom, z);
-         XYZ topRight = new XYZ(right, top, z);
-         XYZ topLeft = new XYZ(left, top, z);
+         XYZ bottomLeft = new (left, bottom, z);
+         XYZ bottomRight = new (right, bottom, z);
+         XYZ topRight = new (right, top, z);
+         XYZ topLeft = new (left, top, z);
 
-         CurveLoop loop = new CurveLoop();
+         CurveLoop loop = new ();
          loop.Append(Line.CreateBound(bottomLeft, bottomRight));
          loop.Append(Line.CreateBound(bottomRight, topRight));
          loop.Append(Line.CreateBound(topRight, topLeft));

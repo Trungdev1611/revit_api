@@ -2,7 +2,6 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using BuildHouse.Utils;
 using Simpleform.buidhouse.models;
-using Simpleform.buidhouse.utils;
 using Simpleform.drawWallRefactor;
 
 namespace Simpleform.buidhouse.services;
@@ -27,10 +26,11 @@ public class ColumnService
         if (column != null)
         {
             column.get_Parameter(BuiltInParameter.FAMILY_TOP_LEVEL_PARAM).Set(config.TopLevelId);
+            // BaseOffset/TopOffset đã là internal feet (convert ở ColumnSectionConfig.ToConfig)
             column.get_Parameter(BuiltInParameter.FAMILY_BASE_LEVEL_OFFSET_PARAM)
-                .Set(RevitUtil.convertToMeter(config.BaseOffset));
+                .Set(config.BaseOffset);
             column.get_Parameter(BuiltInParameter.FAMILY_TOP_LEVEL_OFFSET_PARAM)
-                .Set(RevitUtil.convertToMeter(config.TopOffset));
+                .Set(config.TopOffset);
         }
 
         return column;
@@ -93,12 +93,11 @@ public class ColumnService
                 return null;
             }
 
-            // SymbolName dạng "220x220" → set b/h (mm → internal)
-            if (TryParseSquareSizeMm(symbolName, out double sizeMm))
+            // Width/Height đã là internal feet (convert ở ColumnSectionConfig.ToConfig)
+            if (columnConfig.Width > 0 && columnConfig.Height > 0)
             {
-                double sizeInternal = RevitUtil.convertToMeter(sizeMm);
-                SetParameterIfExists(familySymbol, "b", sizeInternal);
-                SetParameterIfExists(familySymbol, "h", sizeInternal);
+                SetParameterIfExists(familySymbol, "b", columnConfig.Width);
+                SetParameterIfExists(familySymbol, "h", columnConfig.Height);
             }
         }
 
@@ -109,30 +108,6 @@ public class ColumnService
         }
 
         return familySymbol;
-    }
-
-    private static bool TryParseSquareSizeMm(string symbolName, out double sizeMm)
-    {
-        sizeMm = 0;
-        // "220x220" hoặc "220X220"
-        string[] parts = symbolName.Split(new[] { 'x', 'X' }, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length != 2)
-        {
-            return false;
-        }
-
-        if (!double.TryParse(parts[0], out double a) || !double.TryParse(parts[1], out double b))
-        {
-            return false;
-        }
-
-        if (Math.Abs(a - b) > 1e-6)
-        {
-            return false;
-        }
-
-        sizeMm = a;
-        return true;
     }
 
     private static void SetParameterIfExists(Element element, string parameterName, double valueInternal)

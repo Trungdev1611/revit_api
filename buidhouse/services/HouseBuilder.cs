@@ -1,9 +1,7 @@
 using Autodesk.Revit.DB;
-using Autodesk.Revit.UI;
 using BuildHouse.Models;
 using Simpleform.buidhouse.models;
 using Simpleform.buidhouse.utils;
-using Simpleform.drawWallRefactor;
 
 namespace Simpleform.buidhouse.services;
 
@@ -26,8 +24,9 @@ public class HouseBuilder
     {
         AppLog.Information("HouseBuilder.Build start");
 
-        GridService gridService = new GridService(centerPoint, _doc);
-        gridService.createGrids();
+
+        GridService gridService = new GridService(centerPoint, _doc, _config.Grid.ConvertToGridConfig());
+        gridService.CreateGrids();
         AppLog.Information("Grids created");
 
         Dictionary<string, Level> levels = CreateLevels();
@@ -52,9 +51,9 @@ public class HouseBuilder
         AppLog.Information("Columns step done: {0} columns", columns.Count);
         _doc.Regenerate();
 
-        CreateWallFromService(_doc, _config.ToWallConfig(), level1, level2, columns);
+        CreateWallFromService(_doc, _config.Wall.ToConfig(), level1, level2, columns);
 
-        CreateBeamFromService(_doc, _config.ToBeamConfig(), level2);
+        CreateBeamFromService(_doc, _config.Beam.ToConfig(), level2);
         AppLog.Information("Beam finished");
         AppLog.Information("HouseBuilder.Build finished");
         return true;
@@ -81,7 +80,7 @@ public class HouseBuilder
     {
         message = string.Empty;
 
-        BlindingConcreteConfig blindingConcreteConfig = _config.ToBlindingConfig();
+        BlindingConcreteConfig blindingConcreteConfig = _config.Blinding.ToConfig(_config.BaseLevelName);
         ElementId blindingFloorTypeId = _floorService.getFloorTypeIdOrCreateNew(blindingConcreteConfig);
         if (blindingFloorTypeId == null)
         {
@@ -89,7 +88,7 @@ public class HouseBuilder
             return false;
         }
 
-        CurveLoop footingLoop = gridService.createFootprintLoop(blindingConcreteConfig.EdgeExtensionMm);
+        CurveLoop footingLoop = gridService.createFootprintLoop(blindingConcreteConfig.EdgeExtension);
         Floor floor = _floorService.createFloor(
             new List<CurveLoop> { footingLoop },
             blindingFloorTypeId,
@@ -111,7 +110,7 @@ public class HouseBuilder
     {
         message = string.Empty;
 
-        FloorConfig floorConfig = _config.ToFloorConfig();
+        FloorConfig floorConfig = _config.Floor.ToConfig(_config.BaseLevelName);
 
         ElementId floorTypeId = _floorService.getFloorTypeIdOrCreateNew(floorConfig);
         if (floorTypeId == null)
@@ -132,7 +131,8 @@ public class HouseBuilder
 
         ColumnService columnService = new ColumnService();
 
-        double halfColumnWidth = _config.Column.HalfWidthMm;
+        // HalfWidthMm → feet trước khi đưa vào footprint (GridService nhận internal)
+        double halfColumnWidth = RevitUtil.ConvertToFeet(_config.Column.HalfWidthMm);
         (double left, double right, double bottom, double top) = gridService.getFootprintBounds(-halfColumnWidth);
 
         XYZ[] locations =
@@ -146,7 +146,7 @@ public class HouseBuilder
         var created = new List<Element>();
         for (int i = 0; i < locations.Length; i++)
         {
-            ColumnConfig columnConfig = _config.ToColumnConfig(levelId, level2Id);
+            ColumnConfig columnConfig = _config.Column.ToConfig(levelId, level2Id);
             FamilyInstance? column = columnService.CreateColumn(_doc, columnConfig, locations[i]);
             if (column != null)
             {

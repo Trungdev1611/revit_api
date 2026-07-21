@@ -25,7 +25,7 @@ public class WallService
         double BaseOffset = 0,
         Level? topLevel = null)
     {
-        WallType wallType = GetOrCreateWallType(wallconfig.ThicknessWall);
+        WallType wallType = GetOrCreateWallType(wallconfig.Thickness, wallconfig.TypeName);
 
         Curve line = Line.CreateBound(startPoint, endpoint);
 
@@ -43,12 +43,13 @@ public class WallService
     }
 
     /// <summary>
-    /// Tìm WallType Basic đúng thickness (mm). Không có thì Duplicate type gốc rồi set thickness.
+    /// Tìm WallType Basic đúng thickness (internal feet). Không có thì Duplicate type gốc rồi set thickness.
     /// </summary>
-    private WallType GetOrCreateWallType(double thicknessMm)
+    private WallType GetOrCreateWallType(double thicknessInternal, string typeName)
     {
-        double targetThickness = RevitUtil.convertToMeter(thicknessMm);
-        string newTypeName = $"Basic Wall {thicknessMm:0}mm";
+        string newTypeName = string.IsNullOrWhiteSpace(typeName)
+            ? $"Basic Wall {thicknessInternal:F4}ft"
+            : typeName;
 
         List<WallType> basicTypes = new FilteredElementCollector(_doc)
             .OfClass(typeof(WallType))
@@ -57,7 +58,7 @@ public class WallService
             .ToList();
 
         WallType? existing = basicTypes.FirstOrDefault(x =>
-            Math.Abs(x.GetCompoundStructure().GetWidth() - targetThickness) < ThicknessTolerance);
+            Math.Abs(x.GetCompoundStructure().GetWidth() - thicknessInternal) < ThicknessTolerance);
         if (existing != null)
         {
             return existing;
@@ -67,9 +68,9 @@ public class WallService
         if (alreadyCreated != null)
         {
             CompoundStructure existingCs = alreadyCreated.GetCompoundStructure()!;
-            if (Math.Abs(existingCs.GetWidth() - targetThickness) >= ThicknessTolerance)
+            if (Math.Abs(existingCs.GetWidth() - thicknessInternal) >= ThicknessTolerance)
             {
-                SetTotalThickness(existingCs, targetThickness);
+                SetTotalThickness(existingCs, thicknessInternal);
                 alreadyCreated.SetCompoundStructure(existingCs);
             }
             return alreadyCreated;
@@ -86,9 +87,9 @@ public class WallService
         CompoundStructure compound = newWallType.GetCompoundStructure()
             ?? throw new InvalidOperationException($"WallType '{newTypeName}' không có CompoundStructure.");
 
-        SetTotalThickness(compound, targetThickness);
+        SetTotalThickness(compound, thicknessInternal);
         newWallType.SetCompoundStructure(compound);
-        AppLog.Information("Created WallType '{0}' thickness={1}mm", newTypeName, thicknessMm);
+        AppLog.Information("Created WallType '{0}' thickness={1:F4}ft", newTypeName, thicknessInternal);
         return newWallType;
     }
 
